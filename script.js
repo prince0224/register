@@ -192,8 +192,18 @@ class RegistrationApp {
         this.signatureDataInput = document.getElementById('signatureData');
         this.successMessage = document.getElementById('successMessage');
         
+        // 頁面元素
+        this.eventSelectionPage = document.getElementById('eventSelectionPage');
+        this.registrationPage = document.getElementById('registrationPage');
+        this.eventsGrid = document.getElementById('eventsGrid');
+        this.selectedEventInfo = document.getElementById('selectedEventInfo');
+        this.selectedEventIdInput = document.getElementById('selectedEventId');
+        this.headerDescription = document.getElementById('headerDescription');
+        
         this.signaturePad = null;
         this.validator = null;
+        this.selectedEvent = null;
+        this.events = [];
         
         this.init();
     }
@@ -208,11 +218,14 @@ class RegistrationApp {
         // 綁定事件
         this.bindEvents();
         
-        // 設定預設日期（明天）
-        this.setDefaultDate();
+        // 載入活動資料
+        this.loadEvents();
         
-        // 載入活動選項
-        this.loadEventOptions();
+        // 檢查URL參數
+        this.checkUrlParams();
+        
+        // 顯示活動選擇頁面
+        this.showEventSelection();
     }
     
     bindEvents() {
@@ -250,63 +263,159 @@ class RegistrationApp {
                 document.getElementById('posterModal').style.display = 'none';
             }
         });
+        
+        // 返回活動選擇
+        document.getElementById('backToEvents').addEventListener('click', () => {
+            this.showEventSelection();
+        });
     }
     
-    setDefaultDate() {
-        const dateInput = document.getElementById('date');
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        dateInput.value = tomorrow.toISOString().split('T')[0];
-    }
-    
-    loadEventOptions() {
-        const eventSelect = document.getElementById('event');
-        
-        // 清空現有選項（保留預設選項）
-        eventSelect.innerHTML = '<option value="">請選擇活動</option>';
-        
+    loadEvents() {
         try {
-            // 從localStorage載入活動資料
             const storedEvents = localStorage.getItem('events');
             if (storedEvents) {
-                const events = JSON.parse(storedEvents);
-                
-                // 只顯示啟用的活動
-                const activeEvents = events.filter(event => event.active);
-                
-                if (activeEvents.length === 0) {
-                    // 如果沒有啟用的活動，顯示預設選項
-                    eventSelect.innerHTML = `
-                        <option value="">請選擇活動</option>
-                        <option value="group-counseling">團體輔導</option>
-                        <option value="volunteer-growth">志工成長班</option>
-                        <option value="parent-education">親職教育講座</option>
-                    `;
-                } else {
-                    // 加入動態活動選項
-                    activeEvents.forEach(event => {
-                        const option = document.createElement('option');
-                        option.value = event.id;
-                        option.textContent = `${event.name} (${this.formatEventDate(event.date)})`;
-                        eventSelect.appendChild(option);
-                    });
-                    
-                    // 顯示活動海報
-                    this.displayEventPosters(activeEvents);
-                }
-            } else {
-                // 如果沒有活動資料，顯示預設選項
-                eventSelect.innerHTML = `
-                    <option value="">請選擇活動</option>
-                    <option value="group-counseling">團體輔導</option>
-                    <option value="volunteer-growth">志工成長班</option>
-                    <option value="parent-education">親職教育講座</option>
-                `;
+                this.events = JSON.parse(storedEvents);
             }
         } catch (error) {
-            console.error('載入活動選項時發生錯誤:', error);
+            console.error('載入活動資料時發生錯誤:', error);
+            this.events = [];
         }
     }
+    
+    checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('event');
+        if (eventId) {
+            const event = this.events.find(e => e.id === eventId && e.active);
+            if (event) {
+                this.selectEvent(event);
+            }
+        }
+    }
+    
+    showEventSelection() {
+        this.eventSelectionPage.style.display = 'block';
+        this.registrationPage.style.display = 'none';
+        this.headerDescription.textContent = '請選擇您要報名的活動';
+        this.renderEvents();
+        
+        // 更新URL
+        window.history.pushState({}, '', window.location.pathname);
+    }
+    
+    showRegistration(event) {
+        this.eventSelectionPage.style.display = 'none';
+        this.registrationPage.style.display = 'block';
+        this.headerDescription.textContent = `報名：${event.name}`;
+        this.displaySelectedEventInfo(event);
+        this.setEventDate(event.date);
+        
+        // 更新URL
+        window.history.pushState({}, '', `${window.location.pathname}?event=${event.id}`);
+    }
+    
+    renderEvents() {
+        const activeEvents = this.events.filter(event => event.active);
+        
+        if (activeEvents.length === 0) {
+            this.eventsGrid.innerHTML = `
+                <div class="empty-state">
+                    <h3>目前沒有可報名的活動</h3>
+                    <p>請稍後再來查看</p>
+                </div>
+            `;
+            return;
+        }
+        
+        this.eventsGrid.innerHTML = activeEvents.map(event => `
+            <div class="event-card" onclick="registrationApp.selectEvent('${event.id}')">
+                <div class="event-poster-main">
+                    ${event.poster ? 
+                        `<img src="${event.poster}" alt="${event.name}海報" style="width: 100%; height: 100%; object-fit: cover;">` :
+                        `<div style="text-align: center;">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📅</div>
+                            <div>${event.name}</div>
+                        </div>`
+                    }
+                </div>
+                <div class="event-card-content">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-type">${this.getEventTypeName(event.type)}</div>
+                    
+                    <div class="event-details">
+                        <div class="event-detail">
+                            <span class="event-detail-label">日期：</span>
+                            <span>${this.formatEventDate(event.date)}</span>
+                        </div>
+                        ${event.time ? `
+                        <div class="event-detail">
+                            <span class="event-detail-label">時間：</span>
+                            <span>${event.time}</span>
+                        </div>
+                        ` : ''}
+                        ${event.location ? `
+                        <div class="event-detail">
+                            <span class="event-detail-label">地點：</span>
+                            <span>${event.location}</span>
+                        </div>
+                        ` : ''}
+                        ${event.capacity ? `
+                        <div class="event-detail">
+                            <span class="event-detail-label">人數：</span>
+                            <span>限${event.capacity}人</span>
+                        </div>
+                        ` : ''}
+                        ${event.fee ? `
+                        <div class="event-detail">
+                            <span class="event-detail-label">費用：</span>
+                            <span>NT$ ${event.fee}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${event.description ? `
+                    <div class="event-description">${event.description}</div>
+                    ` : ''}
+                    
+                    <button class="register-button" onclick="event.stopPropagation(); registrationApp.selectEvent('${event.id}')">
+                        立即報名
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    selectEvent(eventId) {
+        const event = this.events.find(e => e.id === eventId);
+        if (event) {
+            this.selectedEvent = event;
+            this.showRegistration(event);
+        }
+    }
+    
+    displaySelectedEventInfo(event) {
+        this.selectedEventInfo.innerHTML = `
+            <h3>${event.name}</h3>
+            <p>${this.getEventTypeName(event.type)} • ${this.formatEventDate(event.date)}${event.time ? ` • ${event.time}` : ''}</p>
+        `;
+        
+        this.selectedEventIdInput.value = event.id;
+    }
+    
+    setEventDate(eventDate) {
+        const dateInput = document.getElementById('date');
+        dateInput.value = eventDate;
+    }
+    
+    getEventTypeName(type) {
+        const types = {
+            'group-counseling': '團體輔導',
+            'volunteer-growth': '志工成長班',
+            'parent-education': '親職教育講座'
+        };
+        return types[type] || type;
+    }
+    
     
     formatEventDate(dateString) {
         if (!dateString) return '';
@@ -314,26 +423,6 @@ class RegistrationApp {
         return date.toLocaleDateString('zh-TW');
     }
     
-    displayEventPosters(events) {
-        // 移除現有的海報顯示
-        const existingPosters = document.querySelectorAll('.activity-poster');
-        existingPosters.forEach(poster => poster.remove());
-        
-        // 顯示有海報的活動
-        events.forEach(event => {
-            if (event.poster) {
-                const posterImg = document.createElement('img');
-                posterImg.src = event.poster;
-                posterImg.alt = `${event.name}海報`;
-                posterImg.className = 'activity-poster';
-                posterImg.onclick = () => this.showPosterModal(event.poster);
-                
-                // 將海報插入到活動選擇欄位後面
-                const eventGroup = document.querySelector('#event').closest('.form-group');
-                eventGroup.appendChild(posterImg);
-            }
-        });
-    }
     
     showPosterModal(posterSrc) {
         const modal = document.getElementById('posterModal');
@@ -477,8 +566,9 @@ class RegistrationApp {
 }
 
 // 當頁面載入完成時初始化應用程式
+let registrationApp;
 document.addEventListener('DOMContentLoaded', () => {
-    new RegistrationApp();
+    registrationApp = new RegistrationApp();
 });
 
 // 防止頁面意外關閉時遺失資料

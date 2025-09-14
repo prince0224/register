@@ -10,13 +10,35 @@
     <div class="container">
         <header>
             <h1>活動報名系統</h1>
-            <p>請填寫以下資訊完成報名</p>
+            <p id="headerDescription">請選擇您要報名的活動</p>
             <div class="admin-link">
                 <a href="admin.html" class="btn btn-secondary btn-sm">管理後台</a>
             </div>
         </header>
 
-        <form id="registrationForm" class="registration-form">
+        <!-- 活動選擇頁面 -->
+        <div id="eventSelectionPage" class="event-selection-page">
+            <section class="events-showcase">
+                <h2>可報名活動</h2>
+                <div id="eventsGrid" class="events-grid">
+                    <!-- 動態生成活動卡片 -->
+                </div>
+            </section>
+        </div>
+
+        <!-- 報名表單頁面 -->
+        <div id="registrationPage" class="registration-page" style="display: none;">
+            <div class="back-button">
+                <button id="backToEvents" class="btn btn-secondary">
+                    ← 返回活動選擇
+                </button>
+            </div>
+            
+            <div id="selectedEventInfo" class="selected-event-info">
+                <!-- 動態顯示選中的活動資訊 -->
+            </div>
+
+            <form id="registrationForm" class="registration-form">
             <!-- 基本資訊 -->
             <section class="form-section">報
                 <h2>基本資訊</h2>
@@ -44,12 +66,7 @@
             <!-- 報名資訊 -->
             <section class="form-section">
                 <h2>報名資訊</h2>
-                <div class="form-group">
-                    <label for="event">報名活動 *</label>
-                    <select id="event" name="event" required>
-                        <option value="">請選擇活動</option>
-                    </select>
-                </div>
+                <input type="hidden" id="selectedEventId" name="event">
                 
                 <div class="form-group">
                     <label for="date">活動日期 *</label>
