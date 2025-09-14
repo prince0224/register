@@ -1,0 +1,81 @@
+[build]
+  # 建置命令（靜態網站不需要建置）
+  command = "echo 'Static site - no build needed'"
+  
+  # 發布目錄（根目錄）
+  publish = "."
+
+[build.environment]
+  # Node.js 版本（如果需要）
+  NODE_VERSION = "18"
+
+# 重定向規則
+[[redirects]]
+  # 將所有請求重定向到 index.html（支援SPA路由）
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 標頭設定
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # 安全標頭
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # 快取設定
+    Cache-Control = "public, max-age=31536000"
+
+# 特定檔案的標頭
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.jpeg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.gif"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+# 表單處理（如果需要）
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
