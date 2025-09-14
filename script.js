@@ -199,6 +199,8 @@ class RegistrationApp {
         this.selectedEventInfo = document.getElementById('selectedEventInfo');
         this.selectedEventIdInput = document.getElementById('selectedEventId');
         this.headerDescription = document.getElementById('headerDescription');
+        this.eventPosterDisplay = document.getElementById('eventPosterDisplay');
+        this.eventPosterImg = document.getElementById('eventPosterImg');
         
         this.signaturePad = null;
         this.validator = null;
@@ -400,6 +402,16 @@ class RegistrationApp {
         `;
         
         this.selectedEventIdInput.value = event.id;
+        
+        // 顯示活動海報
+        if (event.poster) {
+            this.eventPosterImg.src = event.poster;
+            this.eventPosterImg.alt = `${event.name}海報`;
+            this.eventPosterImg.onclick = () => this.showPosterModal(event.poster);
+            this.eventPosterDisplay.style.display = 'block';
+        } else {
+            this.eventPosterDisplay.style.display = 'none';
+        }
     }
     
     setEventDate(eventDate) {
