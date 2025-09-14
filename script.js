@@ -407,7 +407,7 @@ class RegistrationApp {
         if (event.poster) {
             this.eventPosterImg.src = event.poster;
             this.eventPosterImg.alt = `${event.name}海報`;
-            this.eventPosterImg.onclick = () => this.showPosterModal(event.poster);
+            this.eventPosterImg.onclick = () => this.openPosterInNewWindow(event.poster, event.name);
             this.eventPosterDisplay.style.display = 'block';
         } else {
             this.eventPosterDisplay.style.display = 'none';
@@ -442,6 +442,168 @@ class RegistrationApp {
         
         modalImg.src = posterSrc;
         modal.style.display = 'block';
+    }
+    
+    openPosterInNewWindow(posterSrc, eventName) {
+        // 建立新視窗的HTML內容
+        const newWindowHTML = `
+            <!DOCTYPE html>
+            <html lang="zh-TW">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${eventName} - 活動海報</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        background: #000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        font-family: 'Microsoft JhengHei', 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+                    }
+                    
+                    .poster-container {
+                        position: relative;
+                        max-width: 100vw;
+                        max-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .poster-image {
+                        max-width: 100%;
+                        max-height: 100vh;
+                        width: auto;
+                        height: auto;
+                        display: block;
+                    }
+                    
+                    .close-button {
+                        position: fixed;
+                        top: 20px;
+                        right: 30px;
+                        background: rgba(255, 255, 255, 0.9);
+                        color: #333;
+                        border: none;
+                        border-radius: 50%;
+                        width: 50px;
+                        height: 50px;
+                        font-size: 24px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        z-index: 1000;
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .close-button:hover {
+                        background: rgba(255, 255, 255, 1);
+                        transform: scale(1.1);
+                    }
+                    
+                    .event-title {
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px 20px;
+                        border-radius: 25px;
+                        font-size: 16px;
+                        z-index: 1000;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .close-button {
+                            top: 10px;
+                            right: 15px;
+                            width: 40px;
+                            height: 40px;
+                            font-size: 20px;
+                        }
+                        
+                        .event-title {
+                            bottom: 10px;
+                            font-size: 14px;
+                            padding: 8px 16px;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <button class="close-button" onclick="window.close()">×</button>
+                <div class="poster-container">
+                    <img src="${posterSrc}" alt="${eventName}海報" class="poster-image">
+                </div>
+                <div class="event-title">${eventName}</div>
+                
+                <script>
+                    // 按ESC鍵關閉視窗
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape') {
+                            window.close();
+                        }
+                    });
+                    
+                    // 點擊背景關閉視窗
+                    document.addEventListener('click', function(e) {
+                        if (e.target === document.body || e.target.classList.contains('poster-container')) {
+                            window.close();
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        `;
+        
+        // 開啟新視窗
+        const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        
+        if (newWindow) {
+            newWindow.document.write(newWindowHTML);
+            newWindow.document.close();
+            
+            // 調整視窗大小以適應圖片
+            newWindow.onload = function() {
+                const img = newWindow.document.querySelector('.poster-image');
+                img.onload = function() {
+                    const imgWidth = img.naturalWidth;
+                    const imgHeight = img.naturalHeight;
+                    
+                    // 計算適合的視窗大小（考慮瀏覽器邊框）
+                    const maxWidth = window.screen.width * 0.9;
+                    const maxHeight = window.screen.height * 0.9;
+                    
+                    let windowWidth = Math.min(imgWidth + 100, maxWidth);
+                    let windowHeight = Math.min(imgHeight + 150, maxHeight);
+                    
+                    // 確保最小尺寸
+                    windowWidth = Math.max(windowWidth, 400);
+                    windowHeight = Math.max(windowHeight, 300);
+                    
+                    newWindow.resizeTo(windowWidth, windowHeight);
+                    newWindow.moveTo(
+                        (window.screen.width - windowWidth) / 2,
+                        (window.screen.height - windowHeight) / 2
+                    );
+                };
+            };
+        } else {
+            // 如果無法開啟新視窗（被彈出視窗阻擋），則使用模態框
+            alert('無法開啟新視窗，請允許彈出視窗或使用模態框檢視');
+            this.showPosterModal(posterSrc);
+        }
     }
     
     saveSignature() {
