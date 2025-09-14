@@ -271,10 +271,9 @@ class RegistrationApp {
                     // 如果沒有啟用的活動，顯示預設選項
                     eventSelect.innerHTML = `
                         <option value="">請選擇活動</option>
-                        <option value="workshop">工作坊</option>
-                        <option value="seminar">研討會</option>
-                        <option value="conference">會議</option>
-                        <option value="training">培訓課程</option>
+                        <option value="group-counseling">團體輔導</option>
+                        <option value="volunteer-growth">志工成長班</option>
+                        <option value="parent-education">親職教育講座</option>
                     `;
                 } else {
                     // 加入動態活動選項
@@ -289,10 +288,9 @@ class RegistrationApp {
                 // 如果沒有活動資料，顯示預設選項
                 eventSelect.innerHTML = `
                     <option value="">請選擇活動</option>
-                    <option value="workshop">工作坊</option>
-                    <option value="seminar">研討會</option>
-                    <option value="conference">會議</option>
-                    <option value="training">培訓課程</option>
+                    <option value="group-counseling">團體輔導</option>
+                    <option value="volunteer-growth">志工成長班</option>
+                    <option value="parent-education">親職教育講座</option>
                 `;
             }
         } catch (error) {

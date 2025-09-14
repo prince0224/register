@@ -145,13 +145,13 @@ class AdminApp {
             const defaultEvents = [
                 {
                     id: 'event_1',
-                    name: '前端開發工作坊',
-                    type: 'workshop',
+                    name: '青少年情緒管理團體輔導',
+                    type: 'group-counseling',
                     date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    time: '09:00',
+                    time: '14:00',
                     location: '台北市信義區',
-                    description: '學習現代前端開發技術，包含React、Vue.js等框架',
-                    capacity: 30,
+                    description: '協助青少年學習情緒管理技巧，建立健康的心理狀態',
+                    capacity: 15,
                     fee: 0,
                     deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     active: true,
@@ -159,15 +159,29 @@ class AdminApp {
                 },
                 {
                     id: 'event_2',
-                    name: 'AI技術研討會',
-                    type: 'seminar',
+                    name: '志工服務技巧成長班',
+                    type: 'volunteer-growth',
                     date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    time: '14:00',
+                    time: '09:00',
                     location: '台北市大安區',
-                    description: '探討人工智慧的最新發展和應用案例',
-                    capacity: 50,
-                    fee: 500,
+                    description: '提升志工服務品質，學習溝通技巧與服務倫理',
+                    capacity: 25,
+                    fee: 0,
                     deadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    active: true,
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 'event_3',
+                    name: '親子溝通技巧講座',
+                    type: 'parent-education',
+                    date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    time: '19:00',
+                    location: '台北市中山區',
+                    description: '學習有效的親子溝通方法，建立和諧的家庭關係',
+                    capacity: 40,
+                    fee: 0,
+                    deadline: new Date(Date.now() + 19 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     active: true,
                     createdAt: new Date().toISOString()
                 }
@@ -752,11 +766,9 @@ class AdminApp {
     
     getEventTypeName(type) {
         const types = {
-            'workshop': '工作坊',
-            'seminar': '研討會',
-            'conference': '會議',
-            'training': '培訓課程',
-            'other': '其他'
+            'group-counseling': '團體輔導',
+            'volunteer-growth': '志工成長班',
+            'parent-education': '親職教育講座'
         };
         return types[type] || type;
     }
