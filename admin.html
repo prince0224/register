@@ -228,6 +228,16 @@
                     </div>
                     
                     <div class="form-group">
+                        <label for="eventPoster">活動宣傳海報</label>
+                        <input type="file" id="eventPoster" name="poster" accept="image/*">
+                        <div id="posterPreview" class="poster-preview" style="display: none;">
+                            <img id="posterPreviewImg" src="" alt="海報預覽">
+                            <button type="button" id="removePoster" class="btn btn-sm btn-danger">移除海報</button>
+                        </div>
+                        <small class="form-text">支援 JPG、PNG、GIF 格式，建議尺寸 800x600 像素</small>
+                    </div>
+                    
+                    <div class="form-group">
                         <label>
                             <input type="checkbox" id="eventActive" name="active" checked>
                             啟用此活動（啟用後才會在報名表單中顯示）
@@ -256,6 +266,16 @@
             <div class="modal-footer">
                 <button id="confirmEventDelete" class="btn btn-danger">確認刪除</button>
                 <button class="btn btn-secondary" onclick="closeEventDeleteModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 海報大圖模態框 -->
+    <div id="posterModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-body">
+                <img id="posterModalImg" src="" alt="活動海報">
             </div>
         </div>
     </div>

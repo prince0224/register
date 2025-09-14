@@ -114,6 +114,22 @@ class AdminApp {
         document.getElementById('confirmEventDelete').addEventListener('click', () => {
             this.deleteEvent();
         });
+        
+        // 海報上傳功能
+        document.getElementById('eventPoster').addEventListener('change', (e) => {
+            this.handlePosterUpload(e);
+        });
+        
+        document.getElementById('removePoster').addEventListener('click', () => {
+            this.removePoster();
+        });
+        
+        // 海報大圖顯示
+        document.getElementById('posterModal').addEventListener('click', (e) => {
+            if (e.target.id === 'posterModal' || e.target.classList.contains('close')) {
+                document.getElementById('posterModal').style.display = 'none';
+            }
+        });
     }
     
     loadRegistrations() {
@@ -155,6 +171,7 @@ class AdminApp {
                     fee: 0,
                     deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     active: true,
+                    poster: null, // 可以稍後上傳海報
                     createdAt: new Date().toISOString()
                 },
                 {
@@ -169,6 +186,7 @@ class AdminApp {
                     fee: 0,
                     deadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     active: true,
+                    poster: null, // 可以稍後上傳海報
                     createdAt: new Date().toISOString()
                 },
                 {
@@ -183,6 +201,7 @@ class AdminApp {
                     fee: 0,
                     deadline: new Date(Date.now() + 19 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     active: true,
+                    poster: null, // 可以稍後上傳海報
                     createdAt: new Date().toISOString()
                 }
             ];
@@ -591,6 +610,10 @@ class AdminApp {
                     ${event.active ? '啟用中' : '已停用'}
                 </div>
                 
+                ${event.poster ? `
+                <img src="${event.poster}" alt="${event.name}海報" class="event-poster" onclick="adminApp.showPosterModal('${event.poster}')">
+                ` : ''}
+                
                 <div class="event-header">
                     <div class="event-title">${event.name}</div>
                     <div class="event-type">${this.getEventTypeName(event.type)}</div>
@@ -678,6 +701,13 @@ class AdminApp {
         document.getElementById('eventFee').value = event.fee || '';
         document.getElementById('eventDeadline').value = event.deadline || '';
         document.getElementById('eventActive').checked = event.active;
+        
+        // 顯示現有海報
+        if (event.poster) {
+            this.showPosterPreview(event.poster);
+        } else {
+            this.hidePosterPreview();
+        }
     }
     
     saveEvent() {
@@ -700,7 +730,8 @@ class AdminApp {
             capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null,
             fee: formData.get('fee') ? parseFloat(formData.get('fee')) : null,
             deadline: formData.get('deadline') || null,
-            active: formData.get('active') === 'on'
+            active: formData.get('active') === 'on',
+            poster: this.currentPosterData || (this.currentEvent ? this.currentEvent.poster : null)
         };
         
         if (this.currentEvent) {
@@ -776,6 +807,58 @@ class AdminApp {
     getEventName(eventId) {
         const event = this.events.find(e => e.id === eventId);
         return event ? event.name : '已刪除的活動';
+    }
+    
+    // 海報相關功能
+    handlePosterUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // 檢查檔案類型
+        if (!file.type.startsWith('image/')) {
+            alert('請選擇圖片檔案');
+            return;
+        }
+        
+        // 檢查檔案大小 (限制為5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('圖片檔案大小不能超過5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.currentPosterData = e.target.result;
+            this.showPosterPreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    showPosterPreview(posterData) {
+        const preview = document.getElementById('posterPreview');
+        const previewImg = document.getElementById('posterPreviewImg');
+        
+        previewImg.src = posterData;
+        preview.style.display = 'block';
+    }
+    
+    hidePosterPreview() {
+        const preview = document.getElementById('posterPreview');
+        preview.style.display = 'none';
+    }
+    
+    removePoster() {
+        this.currentPosterData = null;
+        document.getElementById('eventPoster').value = '';
+        this.hidePosterPreview();
+    }
+    
+    showPosterModal(posterSrc) {
+        const modal = document.getElementById('posterModal');
+        const modalImg = document.getElementById('posterModalImg');
+        
+        modalImg.src = posterSrc;
+        modal.style.display = 'block';
     }
     
     // 輔助函數

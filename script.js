@@ -243,6 +243,13 @@ class RegistrationApp {
                 this.validator.validate();
             });
         });
+        
+        // 海報大圖顯示
+        document.getElementById('posterModal').addEventListener('click', (e) => {
+            if (e.target.id === 'posterModal' || e.target.classList.contains('close')) {
+                document.getElementById('posterModal').style.display = 'none';
+            }
+        });
     }
     
     setDefaultDate() {
@@ -283,6 +290,9 @@ class RegistrationApp {
                         option.textContent = `${event.name} (${this.formatEventDate(event.date)})`;
                         eventSelect.appendChild(option);
                     });
+                    
+                    // 顯示活動海報
+                    this.displayEventPosters(activeEvents);
                 }
             } else {
                 // 如果沒有活動資料，顯示預設選項
@@ -302,6 +312,35 @@ class RegistrationApp {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('zh-TW');
+    }
+    
+    displayEventPosters(events) {
+        // 移除現有的海報顯示
+        const existingPosters = document.querySelectorAll('.activity-poster');
+        existingPosters.forEach(poster => poster.remove());
+        
+        // 顯示有海報的活動
+        events.forEach(event => {
+            if (event.poster) {
+                const posterImg = document.createElement('img');
+                posterImg.src = event.poster;
+                posterImg.alt = `${event.name}海報`;
+                posterImg.className = 'activity-poster';
+                posterImg.onclick = () => this.showPosterModal(event.poster);
+                
+                // 將海報插入到活動選擇欄位後面
+                const eventGroup = document.querySelector('#event').closest('.form-group');
+                eventGroup.appendChild(posterImg);
+            }
+        });
+    }
+    
+    showPosterModal(posterSrc) {
+        const modal = document.getElementById('posterModal');
+        const modalImg = document.getElementById('posterModalImg');
+        
+        modalImg.src = posterSrc;
+        modal.style.display = 'block';
     }
     
     saveSignature() {
