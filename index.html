@@ -11,8 +11,13 @@
         <header>
             <h1>活動報名系統</h1>
             <p id="headerDescription">請選擇您要報名的活動</p>
-            <div class="admin-link">
-                <a href="admin.html" class="btn btn-secondary btn-sm">管理後台</a>
+            <div class="header-controls">
+                <div class="network-status">
+                    <span id="networkStatus" class="status-online">已連線</span>
+                </div>
+                <div class="admin-link">
+                    <a href="admin.html" class="btn btn-secondary btn-sm">管理後台</a>
+                </div>
             </div>
         </header>
 
@@ -116,6 +121,20 @@
             <h3>報名成功！</h3>
             <p>您的報名資訊已成功提交，我們會盡快與您聯繫。</p>
         </div>
+
+        <!-- 家長使用提示 -->
+        <div id="parentTips" class="parent-tips" style="display: none;">
+            <div class="tip-content">
+                <h4>📱 家長使用小貼士</h4>
+                <ul>
+                    <li>✅ 請確保網路連線穩定後再填寫</li>
+                    <li>✅ 支援手機、平板、電腦多裝置使用</li>
+                    <li>✅ 簽名功能支援手指觸控操作</li>
+                    <li>✅ 填寫完成後會即時提交到伺服器</li>
+                </ul>
+                <button id="closeTips" class="btn btn-secondary btn-sm">我知道了</button>
+            </div>
+        </div>
     </div>
 
     <!-- 海報大圖模態框 -->
@@ -128,6 +147,9 @@
         </div>
     </div>
 
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

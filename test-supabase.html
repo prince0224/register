@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 連接測試</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00f2fe;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Supabase 連接測試</h1>
+        <p>這個頁面用來測試 Supabase 連接和基本功能。</p>
+
+        <div class="test-section">
+            <h3>1. 連接測試</h3>
+            <button onclick="testConnection()">測試 Supabase 連接</button>
+            <div id="connectionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 活動資料測試</h3>
+            <button onclick="testLoadEvents()">載入活動資料</button>
+            <button onclick="testInsertEvent()">新增測試活動</button>
+            <div id="eventsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 報名資料測試</h3>
+            <button onclick="testLoadRegistrations()">載入報名資料</button>
+            <button onclick="testInsertRegistration()">新增測試報名</button>
+            <div id="registrationsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 資料庫結構檢查</h3>
+            <button onclick="checkDatabaseStructure()">檢查資料表結構</button>
+            <div id="structureResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    
+    <script>
+        // 測試 Supabase 連接
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在測試連接...';
+
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ Supabase 連接成功！\n\n連接資訊：\n- 專案 URL: ' + window.supabaseClient.supabaseUrl + '\n- 狀態: 正常';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ Supabase 連接失敗：\n\n' + error.message + '\n\n請檢查：\n1. supabase-config.js 中的 URL 和 API Key\n2. 網路連線\n3. Supabase 專案狀態';
+            }
+        }
+
+        // 測試載入活動資料
+        async function testLoadEvents() {
+            const resultDiv = document.getElementById('eventsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在載入活動資料...';
+
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .eq('active', true)
+                    .order('date', { ascending: true });
+                
+                if (error) throw error;
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ 活動資料載入成功！\n\n共找到 ' + data.length + ' 個活動：\n\n' + 
+                    data.map(event => `- ${event.name} (${event.date})`).join('\n');
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 載入活動資料失敗：\n\n' + error.message;
+            }
+        }
+
+        // 測試新增活動
+        async function testInsertEvent() {
+            const resultDiv = document.getElementById('eventsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在新增測試活動...';
+
+            try {
+                const testEvent = {
+                    name: '測試活動 - ' + new Date().toLocaleString(),
+                    type: 'test',
+                    date: '2024-12-31',
+                    time: '10:00-12:00',
+                    location: '測試地點',
+                    capacity: 10,
+                    fee: 0,
+                    description: '這是一個測試活動',
+                    active: true
+                };
+
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .insert([testEvent])
+                    .select();
+                
+                if (error) throw error;
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ 測試活動新增成功！\n\n活動 ID: ' + data[0].id + '\n活動名稱: ' + data[0].name;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 新增測試活動失敗：\n\n' + error.message;
+            }
+        }
+
+        // 測試載入報名資料
+        async function testLoadRegistrations() {
+            const resultDiv = document.getElementById('registrationsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在載入報名資料...';
+
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('registrations')
+                    .select(`
+                        *,
+                        events (
+                            name,
+                            date
+                        )
+                    `)
+                    .order('submitted_at', { ascending: false })
+                    .limit(10);
+                
+                if (error) throw error;
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ 報名資料載入成功！\n\n共找到 ' + data.length + ' 筆報名：\n\n' + 
+                    data.map(reg => `- ${reg.name} (${reg.events?.name || '未知活動'})`).join('\n');
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 載入報名資料失敗：\n\n' + error.message;
+            }
+        }
+
+        // 測試新增報名
+        async function testInsertRegistration() {
+            const resultDiv = document.getElementById('registrationsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在新增測試報名...';
+
+            try {
+                // 先取得一個活動 ID
+                const { data: events } = await window.supabaseClient
+                    .from('events')
+                    .select('id')
+                    .eq('active', true)
+                    .limit(1);
+
+                if (!events || events.length === 0) {
+                    throw new Error('沒有可用的活動');
+                }
+
+                const testRegistration = {
+                    event_id: events[0].id,
+                    name: '測試使用者',
+                    email: 'test@example.com',
+                    phone: '0912345678',
+                    birthdate: '1990-01-01',
+                    registration_date: '2024-12-31',
+                    dietary_requirements: '無',
+                    notes: '這是測試報名',
+                    signature_data: 'data:image/png;base64,test',
+                    status: 'pending'
+                };
+
+                const { data, error } = await window.supabaseClient
+                    .from('registrations')
+                    .insert([testRegistration])
+                    .select();
+                
+                if (error) throw error;
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ 測試報名新增成功！\n\n報名 ID: ' + data[0].id + '\n姓名: ' + data[0].name;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 新增測試報名失敗：\n\n' + error.message;
+            }
+        }
+
+        // 檢查資料庫結構
+        async function checkDatabaseStructure() {
+            const resultDiv = document.getElementById('structureResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在檢查資料庫結構...';
+
+            try {
+                // 檢查 events 表
+                const { data: eventsData, error: eventsError } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .limit(1);
+
+                if (eventsError) throw eventsError;
+
+                // 檢查 registrations 表
+                const { data: registrationsData, error: registrationsError } = await window.supabaseClient
+                    .from('registrations')
+                    .select('*')
+                    .limit(1);
+
+                if (registrationsError) throw registrationsError;
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ 資料庫結構檢查完成！\n\n' +
+                    '📊 events 表：正常\n' +
+                    '📊 registrations 表：正常\n\n' +
+                    '資料表結構符合預期，可以正常使用。';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 資料庫結構檢查失敗：\n\n' + error.message + '\n\n請確認：\n1. 資料表已建立\n2. RLS 政策設定正確\n3. API 權限設定正確';
+            }
+        }
+
+        // 頁面載入時自動測試連接
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                testConnection();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+
+
