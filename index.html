@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動報名系統</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>活動報名系統</h1>
+            <p id="headerDescription">請選擇您要報名的活動</p>
+            <div class="admin-link">
+                <a href="admin.html" class="btn btn-secondary btn-sm">管理後台</a>
+            </div>
+        </header>
+
+        <!-- 活動選擇頁面 -->
+        <div id="eventSelectionPage" class="event-selection-page">
+            <section class="events-showcase">
+                <h2>可報名活動</h2>
+                <div id="eventsGrid" class="events-grid">
+                    <!-- 動態生成活動卡片 -->
+                </div>
+            </section>
+        </div>
+
+        <!-- 報名表單頁面 -->
+        <div id="registrationPage" class="registration-page" style="display: none;">
+            <div class="back-button">
+                <button id="backToEvents" class="btn btn-secondary">
+                    ← 返回活動選擇
+                </button>
+            </div>
+            
+            <div id="selectedEventInfo" class="selected-event-info">
+                <!-- 動態顯示選中的活動資訊 -->
+            </div>
+            
+            <div id="eventPosterDisplay" class="event-poster-display" style="display: none;">
+                <img id="eventPosterImg" src="" alt="活動海報" class="event-poster-large">
+            </div>
+
+            <form id="registrationForm" class="registration-form">
+            <!-- 基本資訊 -->
+            <section class="form-section">報
+                <h2>基本資訊</h2>
+                <div class="form-group">
+                    <label for="name">姓名 *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">電子郵件 *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">聯絡電話 *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="birthdate">出生日期</label>
+                    <input type="date" id="birthdate" name="birthdate">
+                </div>
+            </section>
+
+            <!-- 報名資訊 -->
+            <section class="form-section">
+                <h2>報名資訊</h2>
+                <input type="hidden" id="selectedEventId" name="event">
+                
+                <div class="form-group">
+                    <label for="date">活動日期 *</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dietary">飲食需求</label>
+                    <textarea id="dietary" name="dietary" placeholder="請說明任何特殊飲食需求"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes">備註</label>
+                    <textarea id="notes" name="notes" placeholder="其他需要說明的事項"></textarea>
+                </div>
+            </section>
+
+            <!-- 簽名欄 -->
+            <section class="form-section">
+                <h2>電子簽名</h2>
+                <div class="signature-container">
+                    <p>請在下方簽名確認報名資訊正確無誤：</p>
+                    <div class="signature-wrapper">
+                        <canvas id="signatureCanvas" width="600" height="200"></canvas>
+                        <div class="signature-controls">
+                            <button type="button" id="clearSignature" class="btn btn-secondary">清除簽名</button>
+                            <button type="button" id="saveSignature" class="btn btn-primary">儲存簽名</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="signatureData" name="signature">
+                </div>
+            </section>
+
+            <!-- 提交按鈕 -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">提交報名</button>
+                <button type="reset" class="btn btn-secondary">重新填寫</button>
+            </div>
+        </form>
+
+        <!-- 成功訊息 -->
+        <div id="successMessage" class="success-message" style="display: none;">
+            <h3>報名成功！</h3>
+            <p>您的報名資訊已成功提交，我們會盡快與您聯繫。</p>
+        </div>
+    </div>
+
+    <!-- 海報大圖模態框 -->
+    <div id="posterModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-body">
+                <img id="posterModalImg" src="" alt="活動海報">
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase 配置和客戶端 -->
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="data-sync-manager.js"></script>
+    <script src="sync-status-indicator.js"></script>
+    
+    <!-- 主要應用程式 -->
+    <script src="script.js"></script>
+</body>
+</html>

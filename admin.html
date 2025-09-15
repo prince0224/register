@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報名管理後台</title>
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>📊 報名管理後台</h1>
+            <div class="header-actions">
+                <button id="exportBtn" class="btn btn-success">匯出資料</button>
+                <button id="clearAllBtn" class="btn btn-danger">清除所有資料</button>
+                <a href="index.html" class="btn btn-primary">返回報名頁面</a>
+            </div>
+        </header>
+
+        <div class="admin-content">
+            <!-- 頁籤導航 -->
+            <nav class="tab-navigation">
+                <button class="tab-btn active" data-tab="registrations">報名管理</button>
+                <button class="tab-btn" data-tab="events">活動管理</button>
+            </nav>
+
+            <!-- 報名管理頁籤 -->
+            <div id="registrationsTab" class="tab-content active">
+                <!-- 統計資訊 -->
+                <section class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>總報名人數</h3>
+                        <span id="totalCount" class="stat-number">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>今日報名</h3>
+                        <span id="todayCount" class="stat-number">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>本週報名</h3>
+                        <span id="weekCount" class="stat-number">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>待處理</h3>
+                        <span id="pendingCount" class="stat-number">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 搜尋和篩選 -->
+            <section class="filter-section">
+                <div class="filter-controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜尋姓名、電話或電子郵件...">
+                        <button id="searchBtn" class="btn btn-primary">搜尋</button>
+                    </div>
+                    <div class="filter-options">
+                        <select id="eventFilter">
+                            <option value="">所有活動</option>
+                            <option value="workshop">工作坊</option>
+                            <option value="seminar">研討會</option>
+                            <option value="conference">會議</option>
+                            <option value="training">培訓課程</option>
+                        </select>
+                        <select id="dateFilter">
+                            <option value="">所有日期</option>
+                            <option value="today">今天</option>
+                            <option value="week">本週</option>
+                            <option value="month">本月</option>
+                        </select>
+                        <button id="clearFilter" class="btn btn-secondary">清除篩選</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 報名列表 -->
+            <section class="registrations-section">
+                <div class="section-header">
+                    <h2>報名清單</h2>
+                    <div class="view-controls">
+                        <button id="listViewBtn" class="btn btn-sm active">清單檢視</button>
+                        <button id="cardViewBtn" class="btn btn-sm">卡片檢視</button>
+                    </div>
+                </div>
+
+                <!-- 清單檢視 -->
+                <div id="listView" class="view-container active">
+                    <div class="table-container">
+                        <table class="registrations-table">
+                            <thead>
+                                <tr>
+                                    <th>報名時間</th>
+                                    <th>姓名</th>
+                                    <th>聯絡方式</th>
+                                    <th>活動</th>
+                                    <th>活動日期</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="registrationsTableBody">
+                                <!-- 動態生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 卡片檢視 -->
+                <div id="cardView" class="view-container">
+                    <div id="registrationsCards" class="cards-container">
+                        <!-- 動態生成 -->
+                    </div>
+                </div>
+            </section>
+            </div>
+
+            <!-- 活動管理頁籤 -->
+            <div id="eventsTab" class="tab-content">
+                <!-- 活動管理標題 -->
+                <section class="events-header">
+                    <h2>活動管理</h2>
+                    <button id="addEventBtn" class="btn btn-primary">新增活動</button>
+                </section>
+
+                <!-- 活動列表 -->
+                <section class="events-section">
+                    <div class="events-grid" id="eventsGrid">
+                        <!-- 動態生成活動卡片 -->
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- 詳細資料模態框 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>報名詳細資料</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 動態生成 -->
+            </div>
+            <div class="modal-footer">
+                <button id="markProcessed" class="btn btn-success">標記為已處理</button>
+                <button id="deleteRegistration" class="btn btn-danger">刪除報名</button>
+                <button class="btn btn-secondary" onclick="closeModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認刪除模態框 -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>確認刪除</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>您確定要刪除此報名資料嗎？此操作無法復原。</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmDelete" class="btn btn-danger">確認刪除</button>
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 活動新增/編輯模態框 -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="eventModalTitle">新增活動</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <div class="form-group">
+                        <label for="eventName">活動名稱 *</label>
+                        <input type="text" id="eventName" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventType">活動類型 *</label>
+                        <select id="eventType" name="type" required>
+                            <option value="">請選擇活動類型</option>
+                            <option value="group-counseling">團體輔導</option>
+                            <option value="volunteer-growth">志工成長班</option>
+                            <option value="parent-education">親職教育講座</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventDate">活動日期 *</label>
+                        <input type="date" id="eventDate" name="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventTime">活動時間</label>
+                        <input type="time" id="eventTime" name="time">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventLocation">活動地點</label>
+                        <input type="text" id="eventLocation" name="location" placeholder="請輸入活動地點">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventDescription">活動描述</label>
+                        <textarea id="eventDescription" name="description" rows="4" placeholder="請描述活動內容、目標對象等"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventCapacity">報名人數限制</label>
+                        <input type="number" id="eventCapacity" name="capacity" min="1" placeholder="不限制請留空">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventFee">報名費用</label>
+                        <input type="number" id="eventFee" name="fee" min="0" step="0.01" placeholder="免費請留空或填0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventDeadline">報名截止日期</label>
+                        <input type="date" id="eventDeadline" name="deadline">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventPoster">活動宣傳海報</label>
+                        <input type="file" id="eventPoster" name="poster" accept="image/*">
+                        <div id="posterPreview" class="poster-preview" style="display: none;">
+                            <img id="posterPreviewImg" src="" alt="海報預覽">
+                            <button type="button" id="removePoster" class="btn btn-sm btn-danger">移除海報</button>
+                        </div>
+                        <small class="form-text">支援 JPG、PNG、GIF 格式，建議尺寸 800x600 像素</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="eventActive" name="active" checked>
+                            啟用此活動（啟用後才會在報名表單中顯示）
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="saveEvent" class="btn btn-primary">儲存活動</button>
+                <button class="btn btn-secondary" onclick="closeEventModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 活動刪除確認模態框 -->
+    <div id="eventDeleteModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>確認刪除活動</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>您確定要刪除此活動嗎？</p>
+                <p><strong>注意：</strong>刪除活動後，相關的報名資料仍會保留，但活動名稱將顯示為「已刪除的活動」。</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmEventDelete" class="btn btn-danger">確認刪除</button>
+                <button class="btn btn-secondary" onclick="closeEventDeleteModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 海報大圖模態框 -->
+    <div id="posterModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-body">
+                <img id="posterModalImg" src="" alt="活動海報">
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase 配置和客戶端 -->
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="data-sync-manager.js"></script>
+    <script src="sync-status-indicator.js"></script>
+    
+    <!-- 管理後台應用程式 -->
+    <script src="admin-script.js"></script>
+</body>
+</html>

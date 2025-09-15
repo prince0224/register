@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 診斷工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .debug-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .debug-button:hover {
+            background: #0056b3;
+        }
+        .debug-result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-info { background: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Supabase 診斷工具</h1>
+    
+    <div class="debug-section">
+        <h2>📊 系統狀態</h2>
+        <button class="debug-button" onclick="checkSystemStatus()">檢查系統狀態</button>
+        <div id="systemStatus" class="debug-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔗 連接測試</h2>
+        <button class="debug-button" onclick="testConnection()">測試 Supabase 連接</button>
+        <button class="debug-button" onclick="testConfig()">檢查配置</button>
+        <div id="connectionResult" class="debug-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>📋 資料庫測試</h2>
+        <button class="debug-button" onclick="testDatabase()">測試資料庫操作</button>
+        <button class="debug-button" onclick="testTables()">檢查表格</button>
+        <div id="databaseResult" class="debug-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔄 初始化測試</h2>
+        <button class="debug-button" onclick="testInitialization()">重新初始化</button>
+        <button class="debug-button" onclick="monitorInitialization()">監控初始化過程</button>
+        <div id="initResult" class="debug-result"></div>
+    </div>
+
+    <!-- Supabase 配置和客戶端 -->
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js"></script>
+    
+    <script>
+        // 檢查系統狀態
+        function checkSystemStatus() {
+            const resultDiv = document.getElementById('systemStatus');
+            resultDiv.textContent = '檢查中...';
+            resultDiv.className = 'debug-result info';
+            
+            const status = {
+                timestamp: new Date().toISOString(),
+                navigator: {
+                    online: navigator.onLine,
+                    userAgent: navigator.userAgent
+                },
+                supabase: {
+                    config: window.SUPABASE_CONFIG,
+                    client: !!window.supabaseClient,
+                    isInitialized: window.supabaseClient ? window.supabaseClient.isInitialized : false,
+                    isAvailable: window.supabaseClient ? window.supabaseClient.isAvailable() : false,
+                    hasClient: window.supabaseClient ? !!window.supabaseClient.client : false
+                },
+                libraries: {
+                    supabase: !!window.supabase,
+                    validateConfig: !!window.validateConfig
+                }
+            };
+            
+            resultDiv.textContent = JSON.stringify(status, null, 2);
+            resultDiv.className = 'debug-result info';
+        }
+        
+        // 測試配置
+        function testConfig() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.textContent = '檢查配置中...';
+            resultDiv.className = 'debug-result info';
+            
+            try {
+                const isValid = validateConfig();
+                const config = window.SUPABASE_CONFIG;
+                
+                const result = {
+                    configValid: isValid,
+                    url: config.url,
+                    urlValid: config.url.startsWith('https://') && config.url.includes('.supabase.co'),
+                    anonKey: config.anonKey ? `${config.anonKey.substring(0, 20)}...` : '未設定',
+                    anonKeyValid: config.anonKey && config.anonKey.startsWith('eyJ'),
+                    tables: config.tables
+                };
+                
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = isValid ? 'debug-result success' : 'debug-result error';
+            } catch (error) {
+                resultDiv.textContent = '配置檢查失敗：\n' + error.message;
+                resultDiv.className = 'debug-result error';
+            }
+        }
+        
+        // 測試連接
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.textContent = '測試連接中...';
+            resultDiv.className = 'debug-result info';
+            
+            try {
+                if (!window.supabaseClient) {
+                    throw new Error('Supabase 客戶端未初始化');
+                }
+                
+                if (!window.supabaseClient.isAvailable()) {
+                    throw new Error('Supabase 不可用');
+                }
+                
+                const client = window.supabaseClient.getClient();
+                const { data, error } = await client
+                    .from('events')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                resultDiv.textContent = '✅ 連接測試成功！\n' + JSON.stringify(data, null, 2);
+                resultDiv.className = 'debug-result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ 連接測試失敗：\n' + error.message + '\n\n詳細錯誤：\n' + JSON.stringify(error, null, 2);
+                resultDiv.className = 'debug-result error';
+            }
+        }
+        
+        // 測試資料庫
+        async function testDatabase() {
+            const resultDiv = document.getElementById('databaseResult');
+            resultDiv.textContent = '測試資料庫操作中...';
+            resultDiv.className = 'debug-result info';
+            
+            try {
+                if (!window.supabaseClient || !window.supabaseClient.isAvailable()) {
+                    throw new Error('Supabase 不可用');
+                }
+                
+                const results = {};
+                
+                // 測試讀取活動
+                try {
+                    const events = await window.supabaseClient.getRemoteEvents();
+                    results.events = {
+                        success: true,
+                        count: events.length,
+                        data: events.slice(0, 2) // 只顯示前兩個
+                    };
+                } catch (error) {
+                    results.events = {
+                        success: false,
+                        error: error.message
+                    };
+                }
+                
+                // 測試讀取報名
+                try {
+                    const registrations = await window.supabaseClient.getRemoteRegistrations();
+                    results.registrations = {
+                        success: true,
+                        count: registrations.length,
+                        data: registrations.slice(0, 2) // 只顯示前兩個
+                    };
+                } catch (error) {
+                    results.registrations = {
+                        success: false,
+                        error: error.message
+                    };
+                }
+                
+                resultDiv.textContent = JSON.stringify(results, null, 2);
+                resultDiv.className = 'debug-result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ 資料庫測試失敗：\n' + error.message;
+                resultDiv.className = 'debug-result error';
+            }
+        }
+        
+        // 測試表格
+        async function testTables() {
+            const resultDiv = document.getElementById('databaseResult');
+            resultDiv.textContent = '檢查表格中...';
+            resultDiv.className = 'debug-result info';
+            
+            try {
+                if (!window.supabaseClient || !window.supabaseClient.isAvailable()) {
+                    throw new Error('Supabase 不可用');
+                }
+                
+                const client = window.supabaseClient.getClient();
+                const results = {};
+                
+                // 檢查 events 表格
+                try {
+                    const { data, error } = await client
+                        .from('events')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (error) throw error;
+                    
+                    results.events = {
+                        exists: true,
+                        accessible: true,
+                        sampleData: data[0] || null
+                    };
+                } catch (error) {
+                    results.events = {
+                        exists: false,
+                        accessible: false,
+                        error: error.message
+                    };
+                }
+                
+                // 檢查 registrations 表格
+                try {
+                    const { data, error } = await client
+                        .from('registrations')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (error) throw error;
+                    
+                    results.registrations = {
+                        exists: true,
+                        accessible: true,
+                        sampleData: data[0] || null
+                    };
+                } catch (error) {
+                    results.registrations = {
+                        exists: false,
+                        accessible: false,
+                        error: error.message
+                    };
+                }
+                
+                resultDiv.textContent = JSON.stringify(results, null, 2);
+                resultDiv.className = 'debug-result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ 表格檢查失敗：\n' + error.message;
+                resultDiv.className = 'debug-result error';
+            }
+        }
+        
+        // 測試初始化
+        async function testInitialization() {
+            const resultDiv = document.getElementById('initResult');
+            resultDiv.textContent = '重新初始化中...';
+            resultDiv.className = 'debug-result info';
+            
+            try {
+                // 重新建立客戶端
+                window.supabaseClient = new SupabaseClient();
+                
+                // 等待初始化
+                let attempts = 0;
+                while (attempts < 10) {
+                    if (window.supabaseClient.isAvailable()) {
+                        resultDiv.textContent = '✅ 重新初始化成功！';
+                        resultDiv.className = 'debug-result success';
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    attempts++;
+                }
+                
+                resultDiv.textContent = '⚠️ 初始化超時';
+                resultDiv.className = 'debug-result warning';
+            } catch (error) {
+                resultDiv.textContent = '❌ 初始化失敗：\n' + error.message;
+                resultDiv.className = 'debug-result error';
+            }
+        }
+        
+        // 監控初始化過程
+        function monitorInitialization() {
+            const resultDiv = document.getElementById('initResult');
+            resultDiv.textContent = '開始監控初始化過程...\n';
+            resultDiv.className = 'debug-result info';
+            
+            let log = '';
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            console.log = function(...args) {
+                log += '[LOG] ' + args.join(' ') + '\n';
+                resultDiv.textContent = log;
+                originalLog.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                log += '[ERROR] ' + args.join(' ') + '\n';
+                resultDiv.textContent = log;
+                originalError.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+                log += '[WARN] ' + args.join(' ') + '\n';
+                resultDiv.textContent = log;
+                originalWarn.apply(console, args);
+            };
+            
+            // 5秒後恢復原始 console
+            setTimeout(() => {
+                console.log = originalLog;
+                console.error = originalError;
+                console.warn = originalWarn;
+                log += '\n監控結束';
+                resultDiv.textContent = log;
+            }, 5000);
+        }
+        
+        // 頁面載入時自動檢查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkSystemStatus();
+                testConfig();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
