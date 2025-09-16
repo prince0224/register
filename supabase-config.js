@@ -1,49 +1,37 @@
-// Supabase 配置檔案
-// 請將以下值替換為您的 Supabase 專案資訊
+// Supabase 設定檔
+// 請將 YOUR_PROJECT_URL 和 YOUR_ANON_KEY 替換為您的實際值
 
-const SUPABASE_CONFIG = {
-    // 您的 Supabase 專案 URL
-    url: 'https://mfizfnyzinwuqlykllhy.supabase.co',
-    
-    // 您的 Supabase 公開 API Key
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1maXpmbnl6aW53dXFseWtsbGh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5MDQ5NTEsImV4cCI6MjA3MzQ4MDk1MX0.f2S1FQBfU6aeWPqIcAdM72N6yqx6dZJAe5-Mm9H7M4E',
-    
-    // 資料庫表格名稱
-    tables: {
-        events: 'events',
-        registrations: 'registrations'
-    }
-};
+const SUPABASE_URL = 'https://ljuixaaysvbzmrmhpnlb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqdWl4YWF5c3Ziem1ybWhwbmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5Njk0NDIsImV4cCI6MjA3MzU0NTQ0Mn0.kYXDdxLS6fSYulCJ9rOmSo2G9Sj2xluPVSVZNe11GjE';
 
-// 檢查配置是否完整
-function validateConfig() {
-    if (SUPABASE_CONFIG.url === 'YOUR_SUPABASE_URL' || 
-        SUPABASE_CONFIG.anonKey === 'YOUR_SUPABASE_ANON_KEY') {
-        console.warn('⚠️ 請先設定您的 Supabase 配置資訊');
+// 初始化 Supabase 客戶端
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 匯出客戶端供其他檔案使用
+window.supabaseClient = supabaseClient;
+
+// 測試連接
+async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('events')
+            .select('count')
+            .limit(1);
+        
+        if (error) throw error;
+        console.log('✅ Supabase 連接成功');
+        return true;
+    } catch (error) {
+        console.error('❌ Supabase 連接失敗:', error);
         return false;
     }
-    
-    // 檢查 URL 格式
-    if (!SUPABASE_CONFIG.url.startsWith('https://') || !SUPABASE_CONFIG.url.includes('.supabase.co')) {
-        console.warn('⚠️ Supabase URL 格式不正確');
-        return false;
-    }
-    
-    // 檢查 API Key 格式
-    if (!SUPABASE_CONFIG.anonKey.startsWith('eyJ')) {
-        console.warn('⚠️ Supabase API Key 格式不正確');
-        return false;
-    }
-    
-    console.log('✅ Supabase 配置驗證通過');
-    return true;
 }
 
-// 匯出配置
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SUPABASE_CONFIG, validateConfig };
-} else {
-    window.SUPABASE_CONFIG = SUPABASE_CONFIG;
-    window.validateConfig = validateConfig;
-}
+// 頁面載入時測試連接
+document.addEventListener('DOMContentLoaded', () => {
+    testSupabaseConnection();
+});
 
+// 匯出測試函數
+window.testSupabaseConnection = testSupabaseConnection;

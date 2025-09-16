@@ -54,7 +54,7 @@ git --version
    git branch -M main
    
    # 添加遠端儲存庫（替換 YOUR_USERNAME 和 YOUR_REPO_NAME）
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+ git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git  
    
    # 推送到 GitHub
    git push -u origin main
@@ -202,3 +202,7 @@ git --version
 - ⚡ **快速載入**: CDN 加速
 - 🔒 **安全**: HTTPS 加密
 - ☁️ **雲端同步**: Supabase 資料庫
+
+
+
+

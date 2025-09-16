@@ -172,3 +172,7 @@ activity-registration-system/
 - 📱 **響應式**: 支援所有裝置
 - ⚡ **快速載入**: CDN 加速
 - 🔒 **安全**: HTTPS 加密
+
+
+
+

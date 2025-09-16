@@ -184,6 +184,91 @@ class FormValidator {
     }
 }
 
+// 連線狀態管理
+class ConnectionManager {
+    constructor() {
+        this.isOnline = navigator.onLine;
+        this.bindEvents();
+    }
+    
+    bindEvents() {
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.onNetworkChange(true);
+        });
+        
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            this.onNetworkChange(false);
+        });
+    }
+    
+    onNetworkChange(isOnline) {
+        const statusElement = document.getElementById('networkStatus');
+        if (statusElement) {
+            statusElement.textContent = isOnline ? '已連線' : '連線中斷';
+            statusElement.className = isOnline ? 'status-online' : 'status-offline';
+        }
+        
+        // 顯示連線狀態提示
+        this.showConnectionStatus(isOnline);
+    }
+    
+    showConnectionStatus(isOnline) {
+        if (!isOnline) {
+            this.showOfflineWarning();
+        } else {
+            this.hideOfflineWarning();
+        }
+    }
+    
+    showOfflineWarning() {
+        let warning = document.getElementById('offlineWarning');
+        if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'offlineWarning';
+            warning.className = 'offline-warning';
+            warning.innerHTML = `
+                <div class="warning-content">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">網路連線中斷，請檢查網路設定後重新整理頁面</span>
+                </div>
+            `;
+            document.body.appendChild(warning);
+        }
+        warning.style.display = 'block';
+    }
+    
+    hideOfflineWarning() {
+        const warning = document.getElementById('offlineWarning');
+        if (warning) {
+            warning.style.display = 'none';
+        }
+    }
+    
+    async submitToServer(data) {
+        if (!this.isOnline) {
+            throw new Error('網路連線中斷，無法提交資料');
+        }
+        
+        // 使用 Supabase 提交資料
+        try {
+            const { data: result, error } = await window.supabaseClient
+                .from('registrations')
+                .insert([data])
+                .select();
+            
+            if (error) throw error;
+            
+            console.log('資料提交成功:', result);
+            return result;
+        } catch (error) {
+            console.error('Supabase 提交失敗:', error);
+            throw new Error('伺服器連線失敗，請稍後再試');
+        }
+    }
+}
+
 // 主要應用程式
 class RegistrationApp {
     constructor() {
@@ -206,11 +291,12 @@ class RegistrationApp {
         this.validator = null;
         this.selectedEvent = null;
         this.events = [];
+        this.connectionManager = new ConnectionManager();
         
         this.init();
     }
     
-    async init() {
+    init() {
         // 初始化簽名板
         this.signaturePad = new SignaturePad(this.signatureCanvas);
         
@@ -220,35 +306,17 @@ class RegistrationApp {
         // 綁定事件
         this.bindEvents();
         
-        // 等待 Supabase 初始化
-        await this.waitForSupabase();
-        
-        // 載入活動資料（異步）
-        await this.loadEvents();
+        // 載入活動資料
+        this.loadEvents();
         
         // 檢查URL參數
         this.checkUrlParams();
         
         // 顯示活動選擇頁面
         this.showEventSelection();
-    }
-    
-    async waitForSupabase() {
-        let attempts = 0;
-        const maxAttempts = 30; // 最多等待 30 秒
         
-        while (attempts < maxAttempts) {
-            if (window.supabaseClient && window.supabaseClient.isAvailable()) {
-                console.log('✅ Supabase 已準備就緒');
-                return;
-            }
-            
-            console.log(`⏳ 等待 Supabase 初始化... (${attempts + 1}/${maxAttempts})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-        }
-        
-        console.warn('⚠️ Supabase 初始化超時，將繼續載入頁面');
+        // 檢查是否為首次使用，顯示家長提示
+        this.checkFirstTimeUser();
     }
     
     bindEvents() {
@@ -291,27 +359,79 @@ class RegistrationApp {
         document.getElementById('backToEvents').addEventListener('click', () => {
             this.showEventSelection();
         });
+        
+        // 家長提示關閉
+        document.getElementById('closeTips').addEventListener('click', () => {
+            this.hideParentTips();
+        });
+        
+        // 檢查連線狀態
+        this.checkConnectionStatus();
     }
     
-    async loadEvents() {
+    loadEvents() {
         try {
-            // 必須從 Supabase 載入
-            if (!window.supabaseClient || !window.supabaseClient.isAvailable()) {
-                throw new Error('Supabase 不可用，無法載入活動資料');
+            const storedEvents = localStorage.getItem('events');
+            if (storedEvents) {
+                this.events = JSON.parse(storedEvents);
             }
             
-            const remoteEvents = await window.supabaseClient.getRemoteEvents();
-            this.events = remoteEvents || [];
-            
-            // 更新本地快取
-            localStorage.setItem('events', JSON.stringify(this.events));
-            console.log('✅ 從 Supabase 載入活動資料');
-            
+            // 如果連線正常，從伺服器載入最新活動資料
+            if (this.connectionManager.isOnline) {
+                this.loadEventsFromServer();
+            }
         } catch (error) {
-            console.error('❌ 載入活動資料失敗:', error);
+            console.error('載入活動資料時發生錯誤:', error);
             this.events = [];
-            alert('載入活動資料失敗：' + error.message);
-            // 不拋出錯誤，讓頁面繼續載入
+        }
+    }
+    
+    async loadEventsFromServer() {
+        try {
+            // 從伺服器獲取最新活動資料
+            const serverEvents = await this.fetchEventsFromServer();
+            if (serverEvents && serverEvents.length > 0) {
+                this.events = serverEvents;
+                localStorage.setItem('events', JSON.stringify(serverEvents));
+                this.renderEvents(); // 重新渲染活動列表
+                console.log('活動資料已從伺服器載入');
+            }
+        } catch (error) {
+            console.log('無法從伺服器載入活動資料，使用本地快取資料');
+            this.showError('無法載入最新活動資料，請檢查網路連線');
+        }
+    }
+    
+    async fetchEventsFromServer() {
+        // 使用 Supabase 載入活動資料
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('events')
+                .select('*')
+                .eq('active', true)
+                .order('date', { ascending: true });
+            
+            if (error) throw error;
+            
+            // 轉換資料格式以符合前端需求
+            const formattedEvents = data.map(event => ({
+                id: event.id,
+                name: event.name,
+                type: event.type,
+                date: event.date,
+                time: event.time,
+                location: event.location,
+                capacity: event.capacity,
+                fee: event.fee,
+                description: event.description,
+                active: event.active,
+                poster: event.poster_url
+            }));
+            
+            return formattedEvents;
+        } catch (error) {
+            console.error('載入活動資料失敗:', error);
+            throw error;
         }
     }
     
@@ -695,38 +815,41 @@ class RegistrationApp {
     }
     
     async submitForm() {
+        // 檢查連線狀態
+        if (!this.connectionManager.isOnline) {
+            throw new Error('網路連線中斷，無法提交資料。請檢查網路連線後重試。');
+        }
+        
         // 收集表單資料
         const formData = new FormData(this.form);
         const data = Object.fromEntries(formData.entries());
         
-        // 加入系統資訊
-        data.id = this.generateId();
-        data.submitted_at = new Date().toISOString();
-        data.status = 'pending';
+        // 轉換資料格式以符合 Supabase 資料庫結構
+        const registrationData = {
+            event_id: data.event,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            birthdate: data.birthdate || null,
+            registration_date: data.date,
+            dietary_requirements: data.dietary || null,
+            notes: data.notes || null,
+            signature_data: data.signature,
+            status: 'pending'
+        };
         
-        // 儲存到localStorage
-        this.saveToLocalStorage(data);
+        // 直接提交到 Supabase
+        const result = await this.connectionManager.submitToServer(registrationData);
         
-        // 必須同步到 Supabase
-        try {
-            if (!window.supabaseClient || !window.supabaseClient.isAvailable()) {
-                throw new Error('Supabase 不可用，無法提交報名');
-            }
-            
-            await window.supabaseClient.createRegistration(data);
-            console.log('✅ 報名資料已提交到 Supabase');
-        } catch (error) {
-            console.error('❌ 提交到 Supabase 失敗:', error);
-            throw error; // 重新拋出錯誤，讓表單提交失敗
-        }
-        
-        // 模擬API呼叫（保持原有邏輯）
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                console.log('提交的資料:', data);
-                resolve();
-            }, 1000); // 減少等待時間
+        // 提交成功後儲存到本地（作為備份）
+        this.saveToLocalStorage({
+            ...data,
+            id: result[0].id,
+            submittedAt: result[0].submitted_at
         });
+        
+        console.log('資料已成功提交到 Supabase');
+        return result;
     }
     
     generateId() {
@@ -748,6 +871,22 @@ class RegistrationApp {
             console.log('報名資料已儲存到本地儲存');
         } catch (error) {
             console.error('儲存報名資料時發生錯誤:', error);
+        }
+    }
+    
+    updateLocalStorage(data) {
+        try {
+            const existingData = localStorage.getItem('registrations');
+            const registrations = existingData ? JSON.parse(existingData) : [];
+            
+            // 更新對應的資料
+            const index = registrations.findIndex(reg => reg.id === data.id);
+            if (index !== -1) {
+                registrations[index] = data;
+                localStorage.setItem('registrations', JSON.stringify(registrations));
+            }
+        } catch (error) {
+            console.error('更新本地儲存時發生錯誤:', error);
         }
     }
     
@@ -780,6 +919,38 @@ class RegistrationApp {
     
     showError(message) {
         alert(message);
+    }
+    
+    // 連線狀態檢查
+    checkConnectionStatus() {
+        if (!this.connectionManager.isOnline) {
+            this.showError('網路連線中斷，請檢查網路設定後重新整理頁面');
+        }
+    }
+    
+    // 家長友善功能
+    checkFirstTimeUser() {
+        const hasSeenTips = localStorage.getItem('hasSeenParentTips');
+        if (!hasSeenTips) {
+            setTimeout(() => {
+                this.showParentTips();
+            }, 2000); // 2秒後顯示提示
+        }
+    }
+    
+    showParentTips() {
+        const tipsElement = document.getElementById('parentTips');
+        if (tipsElement) {
+            tipsElement.style.display = 'block';
+        }
+    }
+    
+    hideParentTips() {
+        const tipsElement = document.getElementById('parentTips');
+        if (tipsElement) {
+            tipsElement.style.display = 'none';
+            localStorage.setItem('hasSeenParentTips', 'true');
+        }
     }
 }
 
