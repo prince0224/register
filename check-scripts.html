@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>腳本載入檢查</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .script-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+        .script-item.loaded {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .script-item.failed {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .script-item.loading {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4facfe;
+            color: white;
+        }
+        button:hover { background: #00f2fe; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📜 腳本載入檢查工具</h1>
+        <p>此工具用於檢查所有必要的 JavaScript 腳本是否正確載入。</p>
+
+        <button onclick="checkAllScripts()">檢查所有腳本</button>
+        <button onclick="reloadScripts()">重新載入腳本</button>
+        <button onclick="clearResults()">清除結果</button>
+
+        <div id="results"></div>
+    </div>
+
+    <!-- 引入必要的腳本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth-manager.js"></script>
+    <script src="security-monitor.js"></script>
+    <script src="input-validator.js"></script>
+    <script src="rate-limiter.js"></script>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `script-item ${type}`;
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        function checkAllScripts() {
+            clearResults();
+            addResult('🔍 開始檢查所有腳本載入狀態...', 'loading');
+
+            const scripts = [
+                {
+                    name: 'Supabase Client',
+                    check: () => window.supabaseClient,
+                    description: 'Supabase 資料庫客戶端'
+                },
+                {
+                    name: 'SecureAuthManager',
+                    check: () => window.SecureAuthManager,
+                    description: '安全認證管理器'
+                },
+                {
+                    name: 'SecureInputValidator',
+                    check: () => window.SecureInputValidator,
+                    description: '安全輸入驗證器'
+                },
+                {
+                    name: 'Rate Limiter',
+                    check: () => window.rateLimiter,
+                    description: '速率限制器'
+                },
+                {
+                    name: 'Form Limiter',
+                    check: () => window.formLimiter,
+                    description: '表單速率限制器'
+                },
+                {
+                    name: 'Security Monitor',
+                    check: () => window.securityMonitor,
+                    description: '安全監控系統'
+                }
+            ];
+
+            scripts.forEach((script, index) => {
+                setTimeout(() => {
+                    try {
+                        const result = script.check();
+                        if (result) {
+                            addResult(`✅ ${script.name} - 已載入<br><small>${script.description}</small>`, 'loaded');
+                            
+                            // 如果是類別，嘗試實例化
+                            if (typeof result === 'function') {
+                                try {
+                                    const instance = new result();
+                                    addResult(`✅ ${script.name} - 實例化成功`, 'loaded');
+                                } catch (error) {
+                                    addResult(`⚠️ ${script.name} - 實例化失敗: ${error.message}`, 'failed');
+                                }
+                            }
+                        } else {
+                            addResult(`❌ ${script.name} - 未載入<br><small>${script.description}</small>`, 'failed');
+                        }
+                    } catch (error) {
+                        addResult(`❌ ${script.name} - 檢查失敗: ${error.message}`, 'failed');
+                    }
+                }, index * 200);
+            });
+
+            // 最後檢查
+            setTimeout(() => {
+                const loadedCount = scripts.filter(script => script.check()).length;
+                const totalCount = scripts.length;
+                
+                if (loadedCount === totalCount) {
+                    addResult(`🎉 所有腳本載入成功 (${loadedCount}/${totalCount})`, 'loaded');
+                } else {
+                    addResult(`⚠️ 部分腳本載入失敗 (${loadedCount}/${totalCount})`, 'failed');
+                }
+            }, scripts.length * 200 + 500);
+        }
+
+        function reloadScripts() {
+            clearResults();
+            addResult('🔄 正在重新載入腳本...', 'loading');
+
+            const scripts = [
+                'supabase-config.js',
+                'auth-manager.js',
+                'security-monitor.js',
+                'input-validator.js',
+                'rate-limiter.js'
+            ];
+
+            scripts.forEach((script, index) => {
+                setTimeout(() => {
+                    const scriptElement = document.createElement('script');
+                    scriptElement.src = script;
+                    scriptElement.onload = () => {
+                        addResult(`✅ ${script} - 重新載入成功`, 'loaded');
+                    };
+                    scriptElement.onerror = () => {
+                        addResult(`❌ ${script} - 重新載入失敗`, 'failed');
+                    };
+                    document.head.appendChild(scriptElement);
+                }, index * 500);
+            });
+
+            setTimeout(() => {
+                addResult('🔄 腳本重新載入完成，請重新檢查', 'loading');
+            }, scripts.length * 500 + 1000);
+        }
+
+        // 頁面載入時自動檢查
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                checkAllScripts();
+            }, 1000);
+        });
+
+        // 監聽腳本載入錯誤
+        window.addEventListener('error', (e) => {
+            if (e.target.tagName === 'SCRIPT') {
+                addResult(`❌ 腳本載入錯誤: ${e.target.src}`, 'failed');
+            }
+        });
+    </script>
+</body>
+</html>

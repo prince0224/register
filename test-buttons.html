@@ -102,6 +102,7 @@
     <!-- 引入必要的腳本 -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
+    <script src="auth-manager.js"></script>
     <script src="security-monitor.js"></script>
     <script src="input-validator.js"></script>
     <script src="rate-limiter.js"></script>
@@ -372,34 +373,63 @@
             addTestResult('adminTestResult', '開始測試管理後台認證...', 'info');
 
             try {
-                if (window.SecureAuthManager) {
-                    const authManager = new window.SecureAuthManager();
-                    
-                    // 測試密碼雜湊
-                    authManager.hashPassword('test123').then(hash => {
-                        if (hash && hash.length > 0) {
-                            addTestResult('adminTestResult', '✅ 密碼雜湊功能正常', 'success');
-                        } else {
-                            addTestResult('adminTestResult', '⚠️ 密碼雜湊功能有問題', 'warning');
-                        }
-                    }).catch(error => {
-                        addTestResult('adminTestResult', `❌ 密碼雜湊失敗: ${error.message}`, 'error');
-                    });
+                // 檢查所有相關的腳本是否載入
+                const scripts = [
+                    'supabaseClient',
+                    'SecureAuthManager', 
+                    'SecureInputValidator',
+                    'rateLimiter',
+                    'formLimiter',
+                    'securityMonitor'
+                ];
 
-                    // 測試輸入驗證
-                    const validInput = authManager.validateInput('admin');
-                    if (validInput) {
-                        addTestResult('adminTestResult', '✅ 輸入驗證功能正常', 'success');
+                addTestResult('adminTestResult', '🔍 檢查腳本載入狀態...', 'info');
+                scripts.forEach(script => {
+                    if (window[script]) {
+                        addTestResult('adminTestResult', `✅ ${script} 已載入`, 'success');
                     } else {
-                        addTestResult('adminTestResult', '⚠️ 輸入驗證功能有問題', 'warning');
+                        addTestResult('adminTestResult', `❌ ${script} 未載入`, 'error');
+                    }
+                });
+
+                if (window.SecureAuthManager) {
+                    addTestResult('adminTestResult', '🔍 測試認證管理器功能...', 'info');
+                    
+                    try {
+                        const authManager = new window.SecureAuthManager();
+                        addTestResult('adminTestResult', '✅ 認證管理器初始化成功', 'success');
+                        
+                        // 測試輸入驗證
+                        const validInput = authManager.validateInput('admin');
+                        if (validInput) {
+                            addTestResult('adminTestResult', '✅ 輸入驗證功能正常', 'success');
+                        } else {
+                            addTestResult('adminTestResult', '⚠️ 輸入驗證功能有問題', 'warning');
+                        }
+
+                        // 測試密碼雜湊（異步操作）
+                        authManager.hashPassword('test123').then(hash => {
+                            if (hash && hash.length > 0) {
+                                addTestResult('adminTestResult', '✅ 密碼雜湊功能正常', 'success');
+                            } else {
+                                addTestResult('adminTestResult', '⚠️ 密碼雜湊功能有問題', 'warning');
+                            }
+                        }).catch(error => {
+                            addTestResult('adminTestResult', `❌ 密碼雜湊失敗: ${error.message}`, 'error');
+                        });
+
+                    } catch (initError) {
+                        addTestResult('adminTestResult', `❌ 認證管理器初始化失敗: ${initError.message}`, 'error');
                     }
 
                 } else {
                     addTestResult('adminTestResult', '❌ 認證管理器未載入', 'error');
+                    addTestResult('adminTestResult', '💡 請檢查 auth-manager.js 是否正確載入', 'warning');
                 }
 
             } catch (error) {
                 addTestResult('adminTestResult', `❌ 管理後台認證測試失敗: ${error.message}`, 'error');
+                console.error('管理後台認證測試失敗:', error);
             }
         }
 
