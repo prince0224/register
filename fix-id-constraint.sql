@@ -190,3 +190,4 @@ GROUP BY e.id, e.name, e.date, e.capacity
 ORDER BY e.date ASC;
 
 
+

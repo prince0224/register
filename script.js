@@ -297,6 +297,12 @@ class RegistrationApp {
     }
     
     init() {
+        // 確保模態框在初始化時是隱藏的
+        const posterModal = document.getElementById('posterModal');
+        if (posterModal) {
+            posterModal.style.display = 'none';
+        }
+        
         // 初始化簽名板
         this.signaturePad = new SignaturePad(this.signatureCanvas);
         
@@ -349,11 +355,14 @@ class RegistrationApp {
         });
         
         // 海報大圖顯示
-        document.getElementById('posterModal').addEventListener('click', (e) => {
-            if (e.target.id === 'posterModal' || e.target.classList.contains('close')) {
-                document.getElementById('posterModal').style.display = 'none';
-            }
-        });
+        const posterModal = document.getElementById('posterModal');
+        if (posterModal) {
+            posterModal.addEventListener('click', (e) => {
+                if (e.target.id === 'posterModal' || e.target.classList.contains('close')) {
+                    posterModal.style.display = 'none';
+                }
+            });
+        }
         
         // 返回活動選擇
         document.getElementById('backToEvents').addEventListener('click', () => {
@@ -365,19 +374,49 @@ class RegistrationApp {
             this.hideParentTips();
         });
         
+        // 刷新活動資料
+        document.getElementById('refreshEvents').addEventListener('click', () => {
+            this.refreshEvents();
+        });
+        
         // 檢查連線狀態
         this.checkConnectionStatus();
+        
+        // 添加頁面可見性變化監聽器，當頁面重新可見時刷新活動資料
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.connectionManager.isOnline) {
+                this.loadEventsFromServer();
+            }
+        });
+        
+        // 監聽localStorage變化，當後台管理頁面更新活動時自動刷新
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'eventsNeedRefresh' && e.newValue && this.connectionManager.isOnline) {
+                console.log('收到活動更新通知，正在刷新活動資料...');
+                this.loadEventsFromServer();
+            }
+        });
     }
     
     loadEvents() {
         try {
             const storedEvents = localStorage.getItem('events');
+            const lastUpdated = localStorage.getItem('eventsLastUpdated');
+            
             if (storedEvents) {
                 this.events = JSON.parse(storedEvents);
-            }
-            
-            // 如果連線正常，從伺服器載入最新活動資料
-            if (this.connectionManager.isOnline) {
+                
+                // 檢查快取是否過期（超過5分鐘）
+                const cacheAge = lastUpdated ? 
+                    (new Date() - new Date(lastUpdated)) / (1000 * 60) : 
+                    Infinity;
+                
+                // 如果連線正常且快取過期，從伺服器載入最新活動資料
+                if (this.connectionManager.isOnline && cacheAge > 5) {
+                    this.loadEventsFromServer();
+                }
+            } else if (this.connectionManager.isOnline) {
+                // 沒有快取資料且連線正常，直接從伺服器載入
                 this.loadEventsFromServer();
             }
         } catch (error) {
@@ -393,6 +432,7 @@ class RegistrationApp {
             if (serverEvents && serverEvents.length > 0) {
                 this.events = serverEvents;
                 localStorage.setItem('events', JSON.stringify(serverEvents));
+                localStorage.setItem('eventsLastUpdated', new Date().toISOString());
                 this.renderEvents(); // 重新渲染活動列表
                 console.log('活動資料已從伺服器載入');
             }
@@ -950,6 +990,29 @@ class RegistrationApp {
         if (tipsElement) {
             tipsElement.style.display = 'none';
             localStorage.setItem('hasSeenParentTips', 'true');
+        }
+    }
+    
+    async refreshEvents() {
+        if (!this.connectionManager.isOnline) {
+            alert('網路連線中斷，無法刷新活動資料');
+            return;
+        }
+        
+        const refreshBtn = document.getElementById('refreshEvents');
+        const originalText = refreshBtn.textContent;
+        refreshBtn.textContent = '刷新中...';
+        refreshBtn.disabled = true;
+        
+        try {
+            await this.loadEventsFromServer();
+            alert('活動資料已更新');
+        } catch (error) {
+            console.error('刷新活動資料失敗:', error);
+            alert('刷新活動資料失敗，請稍後再試');
+        } finally {
+            refreshBtn.textContent = originalText;
+            refreshBtn.disabled = false;
         }
     }
 }

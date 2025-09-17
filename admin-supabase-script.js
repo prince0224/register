@@ -794,6 +794,9 @@ class AdminApp {
             this.updateEventFilter();
             document.getElementById('eventModal').style.display = 'none';
             
+            // 清除報名頁面的活動快取，強制重新載入
+            this.clearRegistrationPageCache();
+            
         } catch (error) {
             console.error('儲存活動失敗:', error);
             alert('儲存活動失敗，請稍後再試');
@@ -831,6 +834,9 @@ class AdminApp {
             
             document.getElementById('eventDeleteModal').style.display = 'none';
             alert('活動已刪除');
+            
+            // 清除報名頁面的活動快取，強制重新載入
+            this.clearRegistrationPageCache();
         } catch (error) {
             console.error('刪除活動失敗:', error);
             alert('刪除活動失敗，請稍後再試');
@@ -931,6 +937,22 @@ class AdminApp {
         const date = new Date(dateString);
         return date.toLocaleString('zh-TW');
     }
+    
+    clearRegistrationPageCache() {
+        // 清除報名頁面的活動快取
+        try {
+            localStorage.removeItem('events');
+            localStorage.removeItem('eventsLastUpdated');
+            
+            // 發送事件通知其他頁面需要刷新活動資料
+            localStorage.setItem('eventsNeedRefresh', new Date().toISOString());
+            localStorage.removeItem('eventsNeedRefresh');
+            
+            console.log('已清除報名頁面的活動快取並發送刷新通知');
+        } catch (error) {
+            console.error('清除快取失敗:', error);
+        }
+    }
 }
 
 // 全域函數
@@ -955,5 +977,6 @@ let adminApp;
 document.addEventListener('DOMContentLoaded', () => {
     adminApp = new AdminApp();
 });
+
 
 
