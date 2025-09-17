@@ -58,18 +58,56 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">電子郵件 *</label>
-                    <input type="email" id="email" name="email" required>
+                    <label for="grade">年級</label>
+                    <input type="text" id="grade" name="grade" value="一年級" readonly>
                 </div>
                 
                 <div class="form-group">
-                    <label for="phone">聯絡電話 *</label>
-                    <input type="tel" id="phone" name="phone" required>
+                    <label for="class">班級 *</label>
+                    <select id="class" name="class" required>
+                        <option value="">請選擇班級</option>
+                        <option value="忠">忠</option>
+                        <option value="孝">孝</option>
+                        <option value="仁">仁</option>
+                        <option value="愛">愛</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
-                    <label for="birthdate">出生日期</label>
-                    <input type="date" id="birthdate" name="birthdate">
+                    <label for="seatNumber">座號 *</label>
+                    <select id="seatNumber" name="seatNumber" required>
+                        <option value="">請選擇座號</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                        <option value="17">17</option>
+                        <option value="18">18</option>
+                        <option value="19">19</option>
+                        <option value="20">20</option>
+                        <option value="21">21</option>
+                        <option value="22">22</option>
+                        <option value="23">23</option>
+                        <option value="24">24</option>
+                        <option value="25">25</option>
+                        <option value="26">26</option>
+                        <option value="27">27</option>
+                        <option value="28">28</option>
+                        <option value="29">29</option>
+                        <option value="30">30</option>
+                    </select>
                 </div>
             </section>
 
@@ -84,31 +122,11 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="dietary">飲食需求</label>
-                    <textarea id="dietary" name="dietary" placeholder="請說明任何特殊飲食需求"></textarea>
-                </div>
-                
-                <div class="form-group">
                     <label for="notes">備註</label>
-                    <textarea id="notes" name="notes" placeholder="其他需要說明的事項"></textarea>
+                    <textarea id="notes" name="notes" placeholder="想要讓帶領者事先知道有關於孩子情緒的事情"></textarea>
                 </div>
             </section>
 
-            <!-- 簽名欄 -->
-            <section class="form-section">
-                <h2>電子簽名</h2>
-                <div class="signature-container">
-                    <p>請在下方簽名確認報名資訊正確無誤：</p>
-                    <div class="signature-wrapper">
-                        <canvas id="signatureCanvas" width="600" height="200"></canvas>
-                        <div class="signature-controls">
-                            <button type="button" id="clearSignature" class="btn btn-secondary">清除簽名</button>
-                            <button type="button" id="saveSignature" class="btn btn-primary">儲存簽名</button>
-                        </div>
-                    </div>
-                    <input type="hidden" id="signatureData" name="signature">
-                </div>
-            </section>
 
             <!-- 提交按鈕 -->
             <div class="form-actions">

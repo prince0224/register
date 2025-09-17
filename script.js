@@ -1,89 +1,4 @@
-// 簽名功能實作
-class SignaturePad {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.isDrawing = false;
-        this.lastX = 0;
-        this.lastY = 0;
-        
-        // 設定畫布樣式
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 2;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        
-        this.init();
-    }
-    
-    init() {
-        // 滑鼠事件
-        this.canvas.addEventListener('mousedown', this.startDrawing.bind(this));
-        this.canvas.addEventListener('mousemove', this.draw.bind(this));
-        this.canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
-        this.canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
-        
-        // 觸控事件（支援手機和平板）
-        this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
-        this.canvas.addEventListener('touchmove', this.handleTouch.bind(this));
-        this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
-        
-        // 防止觸控時頁面滾動
-        this.canvas.addEventListener('touchstart', (e) => e.preventDefault());
-        this.canvas.addEventListener('touchmove', (e) => e.preventDefault());
-    }
-    
-    startDrawing(e) {
-        this.isDrawing = true;
-        const rect = this.canvas.getBoundingClientRect();
-        this.lastX = e.clientX - rect.left;
-        this.lastY = e.clientY - rect.top;
-    }
-    
-    draw(e) {
-        if (!this.isDrawing) return;
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const currentX = e.clientX - rect.left;
-        const currentY = e.clientY - rect.top;
-        
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.lastX, this.lastY);
-        this.ctx.lineTo(currentX, currentY);
-        this.ctx.stroke();
-        
-        this.lastX = currentX;
-        this.lastY = currentY;
-    }
-    
-    stopDrawing() {
-        this.isDrawing = false;
-    }
-    
-    handleTouch(e) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                         e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        this.canvas.dispatchEvent(mouseEvent);
-    }
-    
-    clear() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-    
-    isEmpty() {
-        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        return imageData.data.every(pixel => pixel === 0);
-    }
-    
-    getSignatureData() {
-        return this.canvas.toDataURL('image/png');
-    }
-}
+// 簽名功能已移除
 
 // 表單驗證
 class FormValidator {
@@ -95,13 +10,11 @@ class FormValidator {
                 minLength: 2,
                 pattern: /^[\u4e00-\u9fa5a-zA-Z\s]+$/
             },
-            email: {
-                required: true,
-                pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            class: {
+                required: true
             },
-            phone: {
-                required: true,
-                pattern: /^[\d\-\+\(\)\s]+$/
+            seatNumber: {
+                required: true
             },
             event: {
                 required: true
@@ -153,8 +66,8 @@ class FormValidator {
     getFieldLabel(fieldName) {
         const labels = {
             name: '姓名',
-            email: '電子郵件',
-            phone: '聯絡電話',
+            class: '班級',
+            seatNumber: '座號',
             event: '報名活動',
             date: '活動日期'
         };
@@ -273,8 +186,6 @@ class ConnectionManager {
 class RegistrationApp {
     constructor() {
         this.form = document.getElementById('registrationForm');
-        this.signatureCanvas = document.getElementById('signatureCanvas');
-        this.signatureDataInput = document.getElementById('signatureData');
         this.successMessage = document.getElementById('successMessage');
         
         // 頁面元素
@@ -287,7 +198,6 @@ class RegistrationApp {
         this.eventPosterDisplay = document.getElementById('eventPosterDisplay');
         this.eventPosterImg = document.getElementById('eventPosterImg');
         
-        this.signaturePad = null;
         this.validator = null;
         this.selectedEvent = null;
         this.events = [];
@@ -302,9 +212,6 @@ class RegistrationApp {
         if (posterModal) {
             posterModal.style.display = 'none';
         }
-        
-        // 初始化簽名板
-        this.signaturePad = new SignaturePad(this.signatureCanvas);
         
         // 初始化表單驗證器
         this.validator = new FormValidator(this.form);
@@ -329,20 +236,8 @@ class RegistrationApp {
         // 表單提交
         this.form.addEventListener('submit', this.handleSubmit.bind(this));
         
-        // 清除簽名
-        document.getElementById('clearSignature').addEventListener('click', () => {
-            this.signaturePad.clear();
-        });
-        
-        // 儲存簽名
-        document.getElementById('saveSignature').addEventListener('click', () => {
-            this.saveSignature();
-        });
-        
         // 表單重置
         this.form.addEventListener('reset', () => {
-            this.signaturePad.clear();
-            this.signatureDataInput.value = '';
             this.hideSuccessMessage();
         });
         
@@ -790,26 +685,6 @@ class RegistrationApp {
         }
     }
     
-    saveSignature() {
-        if (this.signaturePad.isEmpty()) {
-            alert('請先簽名再儲存');
-            return;
-        }
-        
-        const signatureData = this.signaturePad.getSignatureData();
-        this.signatureDataInput.value = signatureData;
-        
-        // 顯示成功訊息
-        const saveBtn = document.getElementById('saveSignature');
-        const originalText = saveBtn.textContent;
-        saveBtn.textContent = '已儲存';
-        saveBtn.style.background = '#28a745';
-        
-        setTimeout(() => {
-            saveBtn.textContent = originalText;
-            saveBtn.style.background = '';
-        }, 2000);
-    }
     
     async handleSubmit(e) {
         e.preventDefault();
@@ -820,15 +695,6 @@ class RegistrationApp {
             this.showError('請修正表單中的錯誤');
             return;
         }
-        
-        // 檢查簽名
-        if (this.signaturePad.isEmpty()) {
-            alert('請完成電子簽名');
-            return;
-        }
-        
-        // 儲存簽名資料
-        this.saveSignature();
         
         // 顯示載入狀態
         this.showLoading();
@@ -861,13 +727,11 @@ class RegistrationApp {
         const registrationData = {
             event_id: data.event,
             name: data.name,
-            email: data.email,
-            phone: data.phone,
-            birthdate: data.birthdate || null,
+            grade: data.grade,
+            class: data.class,
+            seat_number: data.seatNumber,
             registration_date: data.date,
-            dietary_requirements: data.dietary || null,
             notes: data.notes || null,
-            signature_data: data.signature,
             status: 'pending'
         };
         
