@@ -385,6 +385,7 @@ class RegistrationApp {
         // 添加頁面可見性變化監聽器，當頁面重新可見時刷新活動資料
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && this.connectionManager.isOnline) {
+                // 強制從伺服器載入最新資料，忽略快取
                 this.loadEventsFromServer();
             }
         });
@@ -406,13 +407,13 @@ class RegistrationApp {
             if (storedEvents) {
                 this.events = JSON.parse(storedEvents);
                 
-                // 檢查快取是否過期（超過5分鐘）
+                // 檢查快取是否過期（超過2分鐘）
                 const cacheAge = lastUpdated ? 
                     (new Date() - new Date(lastUpdated)) / (1000 * 60) : 
                     Infinity;
                 
                 // 如果連線正常且快取過期，從伺服器載入最新活動資料
-                if (this.connectionManager.isOnline && cacheAge > 5) {
+                if (this.connectionManager.isOnline && cacheAge > 2) {
                     this.loadEventsFromServer();
                 }
             } else if (this.connectionManager.isOnline) {
@@ -1005,6 +1006,11 @@ class RegistrationApp {
         refreshBtn.disabled = true;
         
         try {
+            // 清除快取
+            localStorage.removeItem('events');
+            localStorage.removeItem('eventsLastUpdated');
+            
+            // 強制從伺服器載入最新資料
             await this.loadEventsFromServer();
             alert('活動資料已更新');
         } catch (error) {

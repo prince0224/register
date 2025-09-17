@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>檢查活動狀態</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .event-item {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .event-item.active {
+            border-left: 4px solid #28a745;
+        }
+        .event-item.inactive {
+            border-left: 4px solid #dc3545;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 檢查活動狀態</h1>
+        
+        <div id="eventsList">
+            <p>載入中...</p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button class="btn btn-warning" onclick="clearCache()">清除快取</button>
+            <button class="btn btn-success" onclick="refreshPage()">重新載入</button>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    
+    <script>
+        async function loadEvents() {
+            try {
+                console.log('開始載入活動...');
+                
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .order('date', { ascending: true });
+                
+                if (error) throw error;
+                
+                console.log('載入的活動:', data);
+                
+                const container = document.getElementById('eventsList');
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p>沒有找到任何活動</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.map(event => `
+                    <div class="event-item ${event.active ? 'active' : 'inactive'}">
+                        <h3>${event.name}</h3>
+                        <p><strong>ID:</strong> ${event.id}</p>
+                        <p><strong>狀態:</strong> 
+                            <span class="status ${event.active ? 'status-active' : 'status-inactive'}">
+                                ${event.active ? '啟用' : '停用'}
+                            </span>
+                        </p>
+                        <p><strong>類型:</strong> ${event.type}</p>
+                        <p><strong>日期:</strong> ${event.date}</p>
+                        <p><strong>描述:</strong> ${event.description || '無'}</p>
+                        <p><strong>海報URL:</strong> ${event.poster_url || '無'}</p>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-danger" onclick="deleteEvent('${event.id}', '${event.name}')">
+                                刪除活動
+                            </button>
+                            <button class="btn btn-warning" onclick="toggleActive('${event.id}', '${event.name}', ${event.active})">
+                                ${event.active ? '停用' : '啟用'}活動
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('載入活動失敗:', error);
+                document.getElementById('eventsList').innerHTML = `<p style="color: red;">載入失敗: ${error.message}</p>`;
+            }
+        }
+        
+        async function deleteEvent(eventId, eventName) {
+            if (!confirm(`確定要刪除活動「${eventName}」嗎？`)) {
+                return;
+            }
+            
+            try {
+                console.log('開始刪除活動:', eventId);
+                
+                const { error } = await window.supabaseClient
+                    .from('events')
+                    .delete()
+                    .eq('id', eventId);
+                
+                if (error) throw error;
+                
+                console.log('活動刪除成功');
+                alert('活動刪除成功！');
+                
+                // 重新載入活動列表
+                await loadEvents();
+                
+            } catch (error) {
+                console.error('刪除活動失敗:', error);
+                alert(`刪除失敗: ${error.message}`);
+            }
+        }
+        
+        async function toggleActive(eventId, eventName, currentActive) {
+            const newActive = !currentActive;
+            const action = newActive ? '啟用' : '停用';
+            
+            if (!confirm(`確定要${action}活動「${eventName}」嗎？`)) {
+                return;
+            }
+            
+            try {
+                console.log(`開始${action}活動:`, eventId);
+                
+                const { error } = await window.supabaseClient
+                    .from('events')
+                    .update({ active: newActive })
+                    .eq('id', eventId);
+                
+                if (error) throw error;
+                
+                console.log(`活動${action}成功`);
+                alert(`活動${action}成功！`);
+                
+                // 重新載入活動列表
+                await loadEvents();
+                
+            } catch (error) {
+                console.error(`${action}活動失敗:`, error);
+                alert(`${action}失敗: ${error.message}`);
+            }
+        }
+        
+        function clearCache() {
+            localStorage.removeItem('events');
+            localStorage.removeItem('eventsLastUpdated');
+            localStorage.removeItem('eventsNeedRefresh');
+            alert('快取已清除！請重新載入報名頁面。');
+        }
+        
+        function refreshPage() {
+            window.location.reload();
+        }
+        
+        // 頁面載入時自動載入活動
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEvents();
+        });
+    </script>
+</body>
+</html>
