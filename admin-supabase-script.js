@@ -1,3 +1,113 @@
+// 登入管理
+class LoginManager {
+    constructor() {
+        this.adminCredentials = {
+            username: 'admin',
+            password: 'admin123'
+        };
+        this.isLoggedIn = false;
+        this.init();
+    }
+    
+    init() {
+        // 檢查是否已經登入
+        const savedLogin = localStorage.getItem('adminLogin');
+        if (savedLogin) {
+            const loginData = JSON.parse(savedLogin);
+            if (loginData.isLoggedIn && loginData.timestamp) {
+                // 檢查登入是否在24小時內
+                const now = new Date().getTime();
+                const loginTime = new Date(loginData.timestamp).getTime();
+                const hoursDiff = (now - loginTime) / (1000 * 60 * 60);
+                
+                if (hoursDiff < 24) {
+                    this.isLoggedIn = true;
+                    this.showAdminPage();
+                    return;
+                } else {
+                    // 登入已過期，清除
+                    localStorage.removeItem('adminLogin');
+                }
+            }
+        }
+        
+        // 顯示登入頁面
+        this.showLoginPage();
+    }
+    
+    showLoginPage() {
+        document.getElementById('loginPage').style.display = 'block';
+        document.getElementById('adminPage').style.display = 'none';
+        this.bindLoginEvents();
+    }
+    
+    showAdminPage() {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('adminPage').style.display = 'block';
+        this.bindLogoutEvents();
+        
+        // 初始化管理後台
+        if (!window.adminApp) {
+            window.adminApp = new AdminApp();
+        }
+    }
+    
+    bindLoginEvents() {
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleLogin();
+        });
+    }
+    
+    bindLogoutEvents() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        logoutBtn.addEventListener('click', () => {
+            this.handleLogout();
+        });
+    }
+    
+    handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        
+        if (username === this.adminCredentials.username && password === this.adminCredentials.password) {
+            // 登入成功
+            this.isLoggedIn = true;
+            
+            // 儲存登入狀態
+            localStorage.setItem('adminLogin', JSON.stringify({
+                isLoggedIn: true,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // 隱藏錯誤訊息
+            errorDiv.style.display = 'none';
+            
+            // 顯示管理後台
+            this.showAdminPage();
+        } else {
+            // 登入失敗
+            errorDiv.style.display = 'block';
+            document.getElementById('password').value = '';
+        }
+    }
+    
+    handleLogout() {
+        if (confirm('確定要登出嗎？')) {
+            this.isLoggedIn = false;
+            localStorage.removeItem('adminLogin');
+            this.showLoginPage();
+            
+            // 清除表單
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginError').style.display = 'none';
+        }
+    }
+}
+
 // 支援 Supabase 的管理後台應用程式
 class AdminApp {
     constructor() {
@@ -69,15 +179,13 @@ class AdminApp {
             this.registrations = (data || []).map(reg => ({
                 id: reg.id,
                 name: reg.name,
-                email: reg.email,
-                phone: reg.phone,
-                birthdate: reg.birthdate,
+                grade: reg.grade,
+                class: reg.class,
+                seatNumber: reg.seat_number,
                 event: reg.event_id,
                 eventName: reg.events?.name || '已刪除的活動',
                 date: reg.registration_date,
-                dietary: reg.dietary_requirements,
                 notes: reg.notes,
-                signature: reg.signature_data,
                 status: reg.status,
                 submittedAt: reg.submitted_at
             }));
@@ -236,8 +344,8 @@ class AdminApp {
         } else {
             this.filteredRegistrations = this.registrations.filter(reg => 
                 reg.name.toLowerCase().includes(searchTerm) ||
-                reg.email.toLowerCase().includes(searchTerm) ||
-                reg.phone.includes(searchTerm)
+                reg.class.includes(searchTerm) ||
+                reg.seatNumber.toString().includes(searchTerm)
             );
         }
         
@@ -331,8 +439,7 @@ class AdminApp {
                 <td>${this.formatDate(reg.submittedAt)}</td>
                 <td>${reg.name}</td>
                 <td>
-                    <div>${reg.email}</div>
-                    <div style="font-size: 0.9em; color: #666;">${reg.phone}</div>
+                    <div>${reg.grade} ${reg.class}班 ${reg.seatNumber}號</div>
                 </td>
                 <td>${reg.eventName}</td>
                 <td>${this.formatDate(reg.date)}</td>
@@ -382,8 +489,8 @@ class AdminApp {
                         <span class="card-field-value">${this.formatDate(reg.date)}</span>
                     </div>
                     <div class="card-field">
-                        <span class="card-field-label">聯絡：</span>
-                        <span class="card-field-value">${reg.email}</span>
+                        <span class="card-field-label">班級：</span>
+                        <span class="card-field-value">${reg.grade} ${reg.class}班 ${reg.seatNumber}號</span>
                     </div>
                 </div>
                 <div class="card-actions">
@@ -414,16 +521,16 @@ class AdminApp {
                     <span class="detail-value">${reg.name}</span>
                 </div>
                 <div class="detail-field">
-                    <span class="detail-label">電子郵件：</span>
-                    <span class="detail-value">${reg.email}</span>
+                    <span class="detail-label">年級：</span>
+                    <span class="detail-value">${reg.grade}</span>
                 </div>
                 <div class="detail-field">
-                    <span class="detail-label">聯絡電話：</span>
-                    <span class="detail-value">${reg.phone}</span>
+                    <span class="detail-label">班級：</span>
+                    <span class="detail-value">${reg.class}班</span>
                 </div>
                 <div class="detail-field">
-                    <span class="detail-label">出生日期：</span>
-                    <span class="detail-value">${reg.birthdate || '未填寫'}</span>
+                    <span class="detail-label">座號：</span>
+                    <span class="detail-value">${reg.seatNumber}號</span>
                 </div>
             </div>
             
@@ -438,19 +545,8 @@ class AdminApp {
                     <span class="detail-value">${this.formatDate(reg.date)}</span>
                 </div>
                 <div class="detail-field">
-                    <span class="detail-label">飲食需求：</span>
-                    <span class="detail-value">${reg.dietary || '無'}</span>
-                </div>
-                <div class="detail-field">
                     <span class="detail-label">備註：</span>
                     <span class="detail-value">${reg.notes || '無'}</span>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h4>簽名</h4>
-                <div class="signature-display">
-                    ${reg.signature ? `<img src="${reg.signature}" alt="簽名">` : '<p>無簽名資料</p>'}
                 </div>
             </div>
             
@@ -553,8 +649,8 @@ class AdminApp {
         
         // 準備CSV資料
         const headers = [
-            '報名時間', '姓名', '電子郵件', '聯絡電話', '出生日期',
-            '報名活動', '活動日期', '飲食需求', '備註', '狀態'
+            '報名時間', '姓名', '年級', '班級', '座號',
+            '報名活動', '活動日期', '備註', '狀態'
         ];
         
         const csvData = [
@@ -562,12 +658,11 @@ class AdminApp {
             ...this.registrations.map(reg => [
                 this.formatDateTime(reg.submittedAt),
                 reg.name,
-                reg.email,
-                reg.phone,
-                reg.birthdate || '',
+                reg.grade,
+                reg.class,
+                reg.seatNumber,
                 reg.eventName,
                 this.formatDate(reg.date),
-                (reg.dietary || '').replace(/,/g, ';'),
                 (reg.notes || '').replace(/,/g, ';'),
                 reg.status === 'pending' ? '待處理' : '已處理'
             ].join(','))
@@ -1007,9 +1102,9 @@ function closeEventDeleteModal() {
 }
 
 // 初始化應用程式
-let adminApp;
+let loginManager;
 document.addEventListener('DOMContentLoaded', () => {
-    adminApp = new AdminApp();
+    loginManager = new LoginManager();
 });
 
 
