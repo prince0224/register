@@ -1,66 +1,39 @@
 // 簽名功能已移除
 
-// 表單驗證
+// 安全表單驗證
 class FormValidator {
     constructor(form) {
         this.form = form;
-        this.rules = {
-            name: {
-                required: true,
-                minLength: 2,
-                pattern: /^[\u4e00-\u9fa5a-zA-Z\s]+$/
-            },
-            class: {
-                required: true
-            },
-            seatNumber: {
-                required: true
-            },
-            event: {
-                required: true
-            },
-            date: {
-                required: true
-            }
-        };
+        this.secureValidator = new SecureInputValidator();
     }
     
     validate() {
-        let isValid = true;
-        const errors = {};
+        // 收集表單資料
+        const formData = new FormData(this.form);
+        const data = Object.fromEntries(formData.entries());
         
-        for (const [fieldName, rules] of Object.entries(this.rules)) {
+        // 使用安全驗證器驗證
+        const validation = this.secureValidator.validateForm(data);
+        
+        // 顯示錯誤訊息
+        for (const [fieldName, error] of Object.entries(validation.errors)) {
             const field = this.form.querySelector(`[name="${fieldName}"]`);
-            if (!field) continue;
-            
-            const value = field.value.trim();
-            const fieldErrors = [];
-            
-            // 必填驗證
-            if (rules.required && !value) {
-                fieldErrors.push(`${this.getFieldLabel(fieldName)}為必填項目`);
-            }
-            
-            // 最小長度驗證
-            if (value && rules.minLength && value.length < rules.minLength) {
-                fieldErrors.push(`${this.getFieldLabel(fieldName)}至少需要${rules.minLength}個字元`);
-            }
-            
-            // 格式驗證
-            if (value && rules.pattern && !rules.pattern.test(value)) {
-                fieldErrors.push(`${this.getFieldLabel(fieldName)}格式不正確`);
-            }
-            
-            if (fieldErrors.length > 0) {
-                errors[fieldName] = fieldErrors;
-                isValid = false;
-                this.showFieldError(field, fieldErrors[0]);
-            } else {
-                this.clearFieldError(field);
+            if (field) {
+                this.showFieldError(field, error);
             }
         }
         
-        return { isValid, errors };
+        // 清除沒有錯誤的欄位
+        for (const fieldName of Object.keys(data)) {
+            if (!validation.errors[fieldName]) {
+                const field = this.form.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    this.clearFieldError(field);
+                }
+            }
+        }
+        
+        return validation;
     }
     
     getFieldLabel(fieldName) {
@@ -685,6 +658,17 @@ class RegistrationApp {
     async handleSubmit(e) {
         e.preventDefault();
         
+        // 收集表單資料用於速率限制檢查
+        const formData = new FormData(this.form);
+        const data = Object.fromEntries(formData.entries());
+        
+        // 檢查速率限制
+        const rateLimitCheck = window.formLimiter.checkFormSubmission(data);
+        if (!rateLimitCheck.allowed) {
+            this.showError(`提交過於頻繁：${rateLimitCheck.reason}`);
+            return;
+        }
+        
         // 驗證表單
         const validation = this.validator.validate();
         if (!validation.isValid) {
@@ -696,7 +680,7 @@ class RegistrationApp {
         this.showLoading();
         
         try {
-            // 模擬提交到伺服器
+            // 提交到伺服器
             await this.submitForm();
             
             // 顯示成功訊息

@@ -1,34 +1,17 @@
-// 登入管理
+// 安全登入管理
 class LoginManager {
     constructor() {
-        this.adminCredentials = {
-            username: 'admin',
-            password: 'admin123'
-        };
+        this.authManager = new SecureAuthManager();
         this.isLoggedIn = false;
         this.init();
     }
     
     init() {
-        // 檢查是否已經登入
-        const savedLogin = localStorage.getItem('adminLogin');
-        if (savedLogin) {
-            const loginData = JSON.parse(savedLogin);
-            if (loginData.isLoggedIn && loginData.timestamp) {
-                // 檢查登入是否在24小時內
-                const now = new Date().getTime();
-                const loginTime = new Date(loginData.timestamp).getTime();
-                const hoursDiff = (now - loginTime) / (1000 * 60 * 60);
-                
-                if (hoursDiff < 24) {
-                    this.isLoggedIn = true;
-                    this.showAdminPage();
-                    return;
-                } else {
-                    // 登入已過期，清除
-                    localStorage.removeItem('adminLogin');
-                }
-            }
+        // 檢查是否已經登入（使用安全認證管理器）
+        if (this.authManager.isAuthenticated) {
+            this.isLoggedIn = true;
+            this.showAdminPage();
+            return;
         }
         
         // 顯示登入頁面
@@ -80,28 +63,28 @@ class LoginManager {
         });
     }
     
-    handleLogin() {
+    async handleLogin() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('loginError');
         
-        if (username === this.adminCredentials.username && password === this.adminCredentials.password) {
-            // 登入成功
-            this.isLoggedIn = true;
+        try {
+            // 使用安全認證管理器進行驗證
+            const isValid = await this.authManager.authenticate(username, password);
             
-            // 儲存登入狀態
-            localStorage.setItem('adminLogin', JSON.stringify({
-                isLoggedIn: true,
-                timestamp: new Date().toISOString()
-            }));
-            
-            // 隱藏錯誤訊息
-            errorDiv.style.display = 'none';
-            
-            // 顯示管理後台
-            this.showAdminPage();
-        } else {
+            if (isValid) {
+                // 登入成功
+                this.isLoggedIn = true;
+                
+                // 隱藏錯誤訊息
+                errorDiv.style.display = 'none';
+                
+                // 顯示管理後台
+                this.showAdminPage();
+            }
+        } catch (error) {
             // 登入失敗
+            errorDiv.textContent = error.message;
             errorDiv.style.display = 'block';
             document.getElementById('password').value = '';
         }
@@ -110,7 +93,10 @@ class LoginManager {
     handleLogout() {
         if (confirm('確定要登出嗎？')) {
             this.isLoggedIn = false;
-            localStorage.removeItem('adminLogin');
+            
+            // 使用安全認證管理器登出
+            this.authManager.logout();
+            
             this.showLoginPage();
             
             // 清除表單
