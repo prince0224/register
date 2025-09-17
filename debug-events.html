@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動調試頁面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .event-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .event-card.active {
+            border-left: 4px solid #28a745;
+        }
+        .event-card.inactive {
+            border-left: 4px solid #dc3545;
+            opacity: 0.7;
+        }
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .event-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 活動調試頁面</h1>
+        
+        <div class="section">
+            <h2>📊 活動統計</h2>
+            <div id="eventStats">
+                <p>總活動數: <span id="totalEvents">0</span></p>
+                <p>啟用活動數: <span id="activeEvents">0</span></p>
+                <p>停用活動數: <span id="inactiveEvents">0</span></p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎯 所有活動列表</h2>
+            <div id="allEventsList">
+                <p>載入中...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>✅ 啟用的活動（報名頁面會顯示的）</h2>
+            <div id="activeEventsList">
+                <p>載入中...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>❌ 停用的活動（報名頁面不會顯示的）</h2>
+            <div id="inactiveEventsList">
+                <p>載入中...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 操作</h2>
+            <button class="btn btn-primary" onclick="loadEvents()">重新載入活動</button>
+            <button class="btn btn-success" onclick="testDelete()">測試刪除功能</button>
+            <button class="btn btn-primary" onclick="clearLog()">清除日誌</button>
+        </div>
+        
+        <div class="section">
+            <h2>📝 日誌</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    
+    <script>
+        let allEvents = [];
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function loadEvents() {
+            log('開始載入活動資料...');
+            
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .order('date', { ascending: true });
+                
+                if (error) throw error;
+                
+                allEvents = data || [];
+                log(`成功載入 ${allEvents.length} 個活動`);
+                
+                updateStats();
+                renderAllEvents();
+                renderActiveEvents();
+                renderInactiveEvents();
+                
+            } catch (error) {
+                log(`載入活動失敗: ${error.message}`);
+                console.error('載入活動失敗:', error);
+            }
+        }
+        
+        function updateStats() {
+            const total = allEvents.length;
+            const active = allEvents.filter(e => e.active).length;
+            const inactive = allEvents.filter(e => !e.active).length;
+            
+            document.getElementById('totalEvents').textContent = total;
+            document.getElementById('activeEvents').textContent = active;
+            document.getElementById('inactiveEvents').textContent = inactive;
+            
+            log(`統計更新: 總數=${total}, 啟用=${active}, 停用=${inactive}`);
+        }
+        
+        function renderAllEvents() {
+            const container = document.getElementById('allEventsList');
+            
+            if (allEvents.length === 0) {
+                container.innerHTML = '<p>沒有活動</p>';
+                return;
+            }
+            
+            container.innerHTML = allEvents.map(event => `
+                <div class="event-card ${event.active ? 'active' : 'inactive'}">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-status ${event.active ? 'status-active' : 'status-inactive'}">
+                        ${event.active ? '啟用' : '停用'}
+                    </div>
+                    <p>ID: ${event.id}</p>
+                    <p>類型: ${event.type}</p>
+                    <p>日期: ${event.date}</p>
+                    <p>描述: ${event.description || '無'}</p>
+                    <button class="btn btn-danger" onclick="deleteEvent('${event.id}')">刪除</button>
+                </div>
+            `).join('');
+        }
+        
+        function renderActiveEvents() {
+            const container = document.getElementById('activeEventsList');
+            const activeEvents = allEvents.filter(e => e.active);
+            
+            if (activeEvents.length === 0) {
+                container.innerHTML = '<p>沒有啟用的活動</p>';
+                return;
+            }
+            
+            container.innerHTML = activeEvents.map(event => `
+                <div class="event-card active">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-status status-active">啟用</div>
+                    <p>ID: ${event.id}</p>
+                    <p>類型: ${event.type}</p>
+                    <p>日期: ${event.date}</p>
+                </div>
+            `).join('');
+        }
+        
+        function renderInactiveEvents() {
+            const container = document.getElementById('inactiveEventsList');
+            const inactiveEvents = allEvents.filter(e => !e.active);
+            
+            if (inactiveEvents.length === 0) {
+                container.innerHTML = '<p>沒有停用的活動</p>';
+                return;
+            }
+            
+            container.innerHTML = inactiveEvents.map(event => `
+                <div class="event-card inactive">
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-status status-inactive">停用</div>
+                    <p>ID: ${event.id}</p>
+                    <p>類型: ${event.type}</p>
+                    <p>日期: ${event.date}</p>
+                </div>
+            `).join('');
+        }
+        
+        async function deleteEvent(eventId) {
+            if (!confirm('確定要刪除此活動嗎？')) {
+                return;
+            }
+            
+            log(`開始刪除活動: ${eventId}`);
+            
+            try {
+                const { error } = await window.supabaseClient
+                    .from('events')
+                    .delete()
+                    .eq('id', eventId);
+                
+                if (error) throw error;
+                
+                log(`成功刪除活動: ${eventId}`);
+                
+                // 重新載入活動
+                await loadEvents();
+                
+            } catch (error) {
+                log(`刪除活動失敗: ${error.message}`);
+                console.error('刪除活動失敗:', error);
+            }
+        }
+        
+        async function testDelete() {
+            log('測試刪除功能...');
+            
+            if (allEvents.length === 0) {
+                log('沒有活動可以測試刪除');
+                return;
+            }
+            
+            const firstEvent = allEvents[0];
+            log(`測試刪除活動: ${firstEvent.name} (ID: ${firstEvent.id})`);
+            
+            await deleteEvent(firstEvent.id);
+        }
+        
+        // 頁面載入時自動載入活動
+        document.addEventListener('DOMContentLoaded', () => {
+            log('頁面載入完成，開始初始化...');
+            loadEvents();
+        });
+    </script>
+</body>
+</html>
