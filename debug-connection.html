@@ -201,41 +201,106 @@
             output('schemaResult', '正在檢查資料庫結構...', 'info');
             
             try {
-                // 檢查 events 表
+                // 檢查 events 表是否存在（通過嘗試查詢來驗證）
+                log('schemaResult', '🔍 檢查 events 表...', 'info');
                 const { data: eventsData, error: eventsError } = await window.supabaseClient
-                    .from('information_schema.columns')
-                    .select('column_name, data_type')
-                    .eq('table_name', 'events')
-                    .order('ordinal_position', { ascending: true });
+                    .from('events')
+                    .select('*')
+                    .limit(1);
                 
-                if (eventsError) throw eventsError;
-                
-                if (eventsData && eventsData.length > 0) {
-                    log('schemaResult', '✅ events 表結構正常', 'success');
-                    log('schemaResult', `📊 events 表有 ${eventsData.length} 個欄位`, 'info');
+                if (eventsError) {
+                    if (eventsError.message.includes('relation "events" does not exist')) {
+                        log('schemaResult', '❌ events 表不存在', 'error');
+                        log('schemaResult', '💡 建議：請執行資料庫初始化腳本', 'warning');
+                    } else {
+                        log('schemaResult', `⚠️ events 表查詢失敗: ${eventsError.message}`, 'warning');
+                    }
                 } else {
-                    log('schemaResult', '❌ events 表不存在或無法訪問', 'error');
+                    log('schemaResult', '✅ events 表存在且可訪問', 'success');
+                    if (eventsData && eventsData.length > 0) {
+                        const sampleEvent = eventsData[0];
+                        const columns = Object.keys(sampleEvent);
+                        log('schemaResult', `📊 events 表有 ${columns.length} 個欄位: ${columns.join(', ')}`, 'info');
+                    } else {
+                        log('schemaResult', '📊 events 表存在但沒有資料', 'info');
+                    }
                 }
                 
-                // 檢查 registrations 表
+                // 檢查 registrations 表是否存在
+                log('schemaResult', '🔍 檢查 registrations 表...', 'info');
                 const { data: regData, error: regError } = await window.supabaseClient
-                    .from('information_schema.columns')
-                    .select('column_name, data_type')
-                    .eq('table_name', 'registrations')
-                    .order('ordinal_position', { ascending: true });
+                    .from('registrations')
+                    .select('*')
+                    .limit(1);
                 
                 if (regError) {
-                    log('schemaResult', `⚠️ registrations 表檢查失敗: ${regError.message}`, 'warning');
-                } else if (regData && regData.length > 0) {
-                    log('schemaResult', '✅ registrations 表結構正常', 'success');
-                    log('schemaResult', `📊 registrations 表有 ${regData.length} 個欄位`, 'info');
+                    if (regError.message.includes('relation "registrations" does not exist')) {
+                        log('schemaResult', '❌ registrations 表不存在', 'error');
+                        log('schemaResult', '💡 建議：請執行資料庫初始化腳本', 'warning');
+                    } else {
+                        log('schemaResult', `⚠️ registrations 表查詢失敗: ${regError.message}`, 'warning');
+                    }
                 } else {
-                    log('schemaResult', '❌ registrations 表不存在', 'error');
+                    log('schemaResult', '✅ registrations 表存在且可訪問', 'success');
+                    if (regData && regData.length > 0) {
+                        const sampleReg = regData[0];
+                        const columns = Object.keys(sampleReg);
+                        log('schemaResult', `📊 registrations 表有 ${columns.length} 個欄位: ${columns.join(', ')}`, 'info');
+                    } else {
+                        log('schemaResult', '📊 registrations 表存在但沒有資料', 'info');
+                    }
                 }
+                
+                // 檢查表結構是否符合預期
+                log('schemaResult', '🔍 檢查表結構是否符合預期...', 'info');
+                await checkTableStructure();
                 
             } catch (error) {
                 log('schemaResult', `❌ 資料庫結構檢查失敗: ${error.message}`, 'error');
                 console.error('資料庫結構檢查失敗:', error);
+            }
+        }
+        
+        async function checkTableStructure() {
+            try {
+                // 檢查 events 表結構
+                const { data: eventsData, error: eventsError } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .limit(1);
+                
+                if (!eventsError && eventsData && eventsData.length > 0) {
+                    const event = eventsData[0];
+                    const expectedFields = ['id', 'name', 'type', 'date', 'time', 'location', 'capacity', 'fee', 'description', 'active'];
+                    const missingFields = expectedFields.filter(field => !(field in event));
+                    
+                    if (missingFields.length === 0) {
+                        log('schemaResult', '✅ events 表結構完整', 'success');
+                    } else {
+                        log('schemaResult', `⚠️ events 表缺少欄位: ${missingFields.join(', ')}`, 'warning');
+                    }
+                }
+                
+                // 檢查 registrations 表結構
+                const { data: regData, error: regError } = await window.supabaseClient
+                    .from('registrations')
+                    .select('*')
+                    .limit(1);
+                
+                if (!regError && regData && regData.length > 0) {
+                    const reg = regData[0];
+                    const expectedFields = ['id', 'event_id', 'name', 'grade', 'class', 'seat_number', 'registration_date', 'notes', 'status'];
+                    const missingFields = expectedFields.filter(field => !(field in reg));
+                    
+                    if (missingFields.length === 0) {
+                        log('schemaResult', '✅ registrations 表結構完整', 'success');
+                    } else {
+                        log('schemaResult', `⚠️ registrations 表缺少欄位: ${missingFields.join(', ')}`, 'warning');
+                    }
+                }
+                
+            } catch (error) {
+                log('schemaResult', `⚠️ 表結構檢查失敗: ${error.message}`, 'warning');
             }
         }
 
