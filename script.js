@@ -192,6 +192,9 @@ class RegistrationApp {
         // 綁定事件
         this.bindEvents();
         
+        // 更新連接狀態
+        this.updateConnectionStatus();
+        
         // 載入活動資料
         this.loadEvents();
         
@@ -202,6 +205,38 @@ class RegistrationApp {
         this.showEventSelection();
         
         // 家長提示功能已移除
+    }
+    
+    updateConnectionStatus() {
+        const statusElement = document.getElementById('connectionStatus');
+        if (statusElement) {
+            if (this.connectionManager.isOnline) {
+                statusElement.textContent = '已連線';
+                statusElement.className = 'connection-status online';
+            } else {
+                statusElement.textContent = '離線';
+                statusElement.className = 'connection-status offline';
+            }
+        }
+    }
+    
+    // 測試 Supabase 連接狀態
+    async testSupabaseConnection() {
+        try {
+            if (!window.supabaseClient) {
+                return false;
+            }
+            
+            const { data, error } = await window.supabaseClient
+                .from('events')
+                .select('count')
+                .limit(1);
+            
+            return !error;
+        } catch (error) {
+            console.error('Supabase 連接測試失敗:', error);
+            return false;
+        }
     }
     
     bindEvents() {
@@ -290,12 +325,26 @@ class RegistrationApp {
                 this.events = [];
                 this.renderEvents();
                 console.log('沒有找到活動資料');
+                this.showError('目前沒有可報名的活動，請聯繫管理員');
             }
         } catch (error) {
             console.error('無法從伺服器載入活動資料:', error);
             this.events = [];
             this.renderEvents();
-            this.showError('無法載入最新活動資料，請檢查網路連線');
+            
+            // 提供更詳細的錯誤訊息
+            let errorMessage = '無法載入最新活動資料';
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = '網路連線失敗，請檢查網路連線後重試';
+            } else if (error.message.includes('JWT')) {
+                errorMessage = '認證失敗，請重新整理頁面';
+            } else if (error.message.includes('permission')) {
+                errorMessage = '權限不足，請聯繫管理員';
+            } else {
+                errorMessage = `載入失敗：${error.message}`;
+            }
+            
+            this.showError(errorMessage);
         }
     }
     

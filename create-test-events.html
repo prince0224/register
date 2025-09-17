@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>創建測試活動</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4facfe;
+            color: white;
+        }
+        button:hover { background: #00f2fe; }
+        .success { color: green; }
+        .error { color: red; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 創建測試活動</h1>
+        <p>此工具用於在資料庫中創建測試活動，解決「無法載入最新資料」的問題。</p>
+
+        <button onclick="createTestEvents()">創建測試活動</button>
+        <button onclick="checkExistingEvents()">檢查現有活動</button>
+        <button onclick="clearAllEvents()">清除所有活動</button>
+
+        <h2>結果:</h2>
+        <pre id="output"></pre>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function logOutput(message, isError = false) {
+            const span = document.createElement('span');
+            span.className = isError ? 'error' : 'success';
+            span.textContent = message;
+            output.appendChild(span);
+            output.appendChild(document.createElement('br'));
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function createTestEvents() {
+            output.innerHTML = '';
+            logOutput('正在創建測試活動...');
+            
+            try {
+                const testEvents = [
+                    {
+                        name: '春季戶外教學',
+                        type: '戶外活動',
+                        date: '2024-03-15',
+                        time: '09:00',
+                        location: '陽明山國家公園',
+                        capacity: 30,
+                        fee: 0,
+                        description: '帶領學生親近大自然，學習生態知識',
+                        active: true,
+                        poster_url: null
+                    },
+                    {
+                        name: '科學實驗課程',
+                        type: '室內活動',
+                        date: '2024-03-20',
+                        time: '14:00',
+                        location: '學校實驗室',
+                        capacity: 25,
+                        fee: 100,
+                        description: '有趣的科學實驗，培養學生對科學的興趣',
+                        active: true,
+                        poster_url: null
+                    },
+                    {
+                        name: '美術創作工作坊',
+                        type: '藝術活動',
+                        date: '2024-03-25',
+                        time: '10:00',
+                        location: '美術教室',
+                        capacity: 20,
+                        fee: 50,
+                        description: '學習繪畫技巧，發揮創意想像',
+                        active: true,
+                        poster_url: null
+                    }
+                ];
+
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .insert(testEvents)
+                    .select();
+
+                if (error) throw error;
+
+                logOutput(`✅ 成功創建 ${data.length} 個測試活動！`);
+                data.forEach((event, index) => {
+                    logOutput(`${index + 1}. ${event.name} (ID: ${event.id})`);
+                });
+
+            } catch (error) {
+                logOutput(`❌ 創建測試活動失敗: ${error.message}`, true);
+                console.error('創建測試活動失敗:', error);
+            }
+        }
+
+        async function checkExistingEvents() {
+            output.innerHTML = '';
+            logOutput('正在檢查現有活動...');
+            
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    logOutput(`✅ 找到 ${data.length} 個活動:`);
+                    data.forEach((event, index) => {
+                        const status = event.active ? '✅ 啟用' : '❌ 停用';
+                        logOutput(`${index + 1}. ${event.name} - ${status} (${event.date})`);
+                    });
+                } else {
+                    logOutput('⚠️ 沒有找到任何活動');
+                }
+
+            } catch (error) {
+                logOutput(`❌ 檢查活動失敗: ${error.message}`, true);
+                console.error('檢查活動失敗:', error);
+            }
+        }
+
+        async function clearAllEvents() {
+            if (!confirm('確定要清除所有活動嗎？此操作無法復原！')) {
+                return;
+            }
+
+            output.innerHTML = '';
+            logOutput('正在清除所有活動...');
+            
+            try {
+                const { error } = await window.supabaseClient
+                    .from('events')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000'); // 刪除所有記錄
+
+                if (error) throw error;
+
+                logOutput('✅ 所有活動已清除');
+
+            } catch (error) {
+                logOutput(`❌ 清除活動失敗: ${error.message}`, true);
+                console.error('清除活動失敗:', error);
+            }
+        }
+
+        // 頁面載入時自動檢查現有活動
+        document.addEventListener('DOMContentLoaded', () => {
+            checkExistingEvents();
+        });
+    </script>
+</body>
+</html>
