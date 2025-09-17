@@ -641,7 +641,41 @@ class AdminApp {
             return;
         }
         
-        container.innerHTML = this.events.map(event => `
+        // 按啟用狀態分組顯示活動
+        const activeEvents = this.events.filter(e => e.active);
+        const inactiveEvents = this.events.filter(e => !e.active);
+        
+        let html = '';
+        
+        // 顯示啟用的活動
+        if (activeEvents.length > 0) {
+            html += `
+                <div class="events-section">
+                    <h3 class="section-title">啟用的活動</h3>
+                    <div class="events-grid-section">
+                        ${activeEvents.map(event => this.generateEventCard(event)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 顯示停用的活動
+        if (inactiveEvents.length > 0) {
+            html += `
+                <div class="events-section">
+                    <h3 class="section-title">已停用的活動</h3>
+                    <div class="events-grid-section">
+                        ${inactiveEvents.map(event => this.generateEventCard(event)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    generateEventCard(event) {
+        return `
             <div class="event-card ${event.active ? '' : 'inactive'}">
                 <div class="event-status ${event.active ? 'active' : 'inactive'}">
                     ${event.active ? '啟用中' : '已停用'}
@@ -699,7 +733,7 @@ class AdminApp {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `;
     }
     
     showEventModal(eventId = null) {
