@@ -390,10 +390,10 @@ class RegistrationApp {
             }
         });
         
-        // 監聽localStorage變化，當後台管理頁面更新活動時自動刷新
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'eventsNeedRefresh' && e.newValue && this.connectionManager.isOnline) {
-                console.log('收到活動更新通知，正在刷新活動資料...');
+        // 監聽頁面焦點變化，當頁面重新獲得焦點時自動刷新
+        window.addEventListener('focus', () => {
+            if (this.connectionManager.isOnline) {
+                console.log('頁面重新獲得焦點，正在刷新活動資料...');
                 this.loadEventsFromServer();
             }
         });
@@ -401,24 +401,12 @@ class RegistrationApp {
     
     loadEvents() {
         try {
-            const storedEvents = localStorage.getItem('events');
-            const lastUpdated = localStorage.getItem('eventsLastUpdated');
-            
-            if (storedEvents) {
-                this.events = JSON.parse(storedEvents);
-                
-                // 檢查快取是否過期（超過2分鐘）
-                const cacheAge = lastUpdated ? 
-                    (new Date() - new Date(lastUpdated)) / (1000 * 60) : 
-                    Infinity;
-                
-                // 如果連線正常且快取過期，從伺服器載入最新活動資料
-                if (this.connectionManager.isOnline && cacheAge > 2) {
-                    this.loadEventsFromServer();
-                }
-            } else if (this.connectionManager.isOnline) {
-                // 沒有快取資料且連線正常，直接從伺服器載入
+            // 直接從伺服器載入活動資料，不使用本地儲存
+            if (this.connectionManager.isOnline) {
                 this.loadEventsFromServer();
+            } else {
+                this.events = [];
+                console.log('網路連線中斷，無法載入活動資料');
             }
         } catch (error) {
             console.error('載入活動資料時發生錯誤:', error);
@@ -432,13 +420,17 @@ class RegistrationApp {
             const serverEvents = await this.fetchEventsFromServer();
             if (serverEvents && serverEvents.length > 0) {
                 this.events = serverEvents;
-                localStorage.setItem('events', JSON.stringify(serverEvents));
-                localStorage.setItem('eventsLastUpdated', new Date().toISOString());
                 this.renderEvents(); // 重新渲染活動列表
                 console.log('活動資料已從伺服器載入');
+            } else {
+                this.events = [];
+                this.renderEvents();
+                console.log('沒有找到活動資料');
             }
         } catch (error) {
-            console.log('無法從伺服器載入活動資料，使用本地快取資料');
+            console.error('無法從伺服器載入活動資料:', error);
+            this.events = [];
+            this.renderEvents();
             this.showError('無法載入最新活動資料，請檢查網路連線');
         }
     }
@@ -1006,11 +998,7 @@ class RegistrationApp {
         refreshBtn.disabled = true;
         
         try {
-            // 清除快取
-            localStorage.removeItem('events');
-            localStorage.removeItem('eventsLastUpdated');
-            
-            // 強制從伺服器載入最新資料
+            // 直接從伺服器載入最新資料
             await this.loadEventsFromServer();
             alert('活動資料已更新');
         } catch (error) {
