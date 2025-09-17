@@ -36,13 +36,13 @@ class LoginManager {
     }
     
     showLoginPage() {
-        document.getElementById('loginPage').style.display = 'block';
+        document.getElementById('loginModal').style.display = 'block';
         document.getElementById('adminPage').style.display = 'none';
         this.bindLoginEvents();
     }
     
     showAdminPage() {
-        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('loginModal').style.display = 'none';
         document.getElementById('adminPage').style.display = 'block';
         this.bindLogoutEvents();
         
@@ -57,6 +57,19 @@ class LoginManager {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleLogin();
+        });
+        
+        // 關閉按鈕事件
+        document.getElementById('loginClose').addEventListener('click', () => {
+            this.showLoginPage(); // 重新顯示登入對話框
+        });
+        
+        // 點擊對話框外部不關閉（強制登入）
+        document.getElementById('loginModal').addEventListener('click', (e) => {
+            if (e.target.id === 'loginModal') {
+                // 不允許點擊外部關閉
+                e.stopPropagation();
+            }
         });
     }
     

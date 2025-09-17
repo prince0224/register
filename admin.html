@@ -7,39 +7,39 @@
     <link rel="stylesheet" href="admin-styles.css">
 </head>
 <body>
-    <!-- 登入頁面 -->
-    <div id="loginPage" class="login-page">
-        <div class="login-container">
-            <div class="login-header">
-                <h1>🔐 管理後台登入</h1>
-                <p>請輸入管理員帳號密碼</p>
+    <!-- 登入對話框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content login-modal-content">
+            <div class="modal-header">
+                <h3>🔐 管理後台登入</h3>
+                <span class="close" id="loginClose">&times;</span>
             </div>
-            
-            <form id="loginForm" class="login-form">
-                <div class="form-group">
-                    <label for="username">帳號</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">密碼</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary btn-large">登入</button>
-                    <a href="index.html" class="btn btn-secondary">返回報名頁面</a>
-                </div>
-            </form>
-            
-            <div id="loginError" class="error-message" style="display: none;">
-                帳號或密碼錯誤，請重新輸入
+            <div class="modal-body">
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="username">帳號</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">密碼</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    
+                    <div id="loginError" class="error-message" style="display: none;">
+                        帳號或密碼錯誤，請重新輸入
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" form="loginForm" class="btn btn-primary">登入</button>
+                <a href="index.html" class="btn btn-secondary">返回報名頁面</a>
             </div>
         </div>
     </div>
 
     <!-- 管理後台主頁面 -->
-    <div id="adminPage" class="admin-container" style="display: none;">
+    <div id="adminPage" class="admin-container">
         <header class="admin-header">
             <h1>📊 報名管理後台</h1>
             <div class="header-actions">
