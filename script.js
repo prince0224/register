@@ -228,8 +228,7 @@ class RegistrationApp {
         // 顯示活動選擇頁面
         this.showEventSelection();
         
-        // 檢查是否為首次使用，顯示家長提示
-        this.checkFirstTimeUser();
+        // 家長提示功能已移除
     }
     
     bindEvents() {
@@ -264,10 +263,7 @@ class RegistrationApp {
             this.showEventSelection();
         });
         
-        // 家長提示關閉
-        document.getElementById('closeTips').addEventListener('click', () => {
-            this.hideParentTips();
-        });
+        // 家長提示功能已移除
         
         // 刷新活動資料
         document.getElementById('refreshEvents').addEventListener('click', () => {
@@ -825,30 +821,7 @@ class RegistrationApp {
         }
     }
     
-    // 家長友善功能
-    checkFirstTimeUser() {
-        const hasSeenTips = localStorage.getItem('hasSeenParentTips');
-        if (!hasSeenTips) {
-            setTimeout(() => {
-                this.showParentTips();
-            }, 2000); // 2秒後顯示提示
-        }
-    }
-    
-    showParentTips() {
-        const tipsElement = document.getElementById('parentTips');
-        if (tipsElement) {
-            tipsElement.style.display = 'block';
-        }
-    }
-    
-    hideParentTips() {
-        const tipsElement = document.getElementById('parentTips');
-        if (tipsElement) {
-            tipsElement.style.display = 'none';
-            localStorage.setItem('hasSeenParentTips', 'true');
-        }
-    }
+    // 家長提示功能已移除
     
     async refreshEvents() {
         if (!this.connectionManager.isOnline) {
