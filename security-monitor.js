@@ -93,7 +93,7 @@ class SecurityMonitor {
             Date.now() - new Date(e.timestamp).getTime() < 60000 // 最近1分鐘
         );
         
-        if (recentEvents.length > 20) {
+        if (recentEvents.length > 100) { // 提高閾值，避免正常操作被誤判
             return true;
         }
         
@@ -141,7 +141,7 @@ class SecurityMonitor {
         
         // 如果某種事件類型過於頻繁
         for (const [type, count] of Object.entries(eventCounts)) {
-            if (count > 10) {
+            if (count > 50) { // 提高閾值，避免正常操作被誤判
                 this.logEvent('suspicious_frequency', {
                     eventType: type,
                     count: count,

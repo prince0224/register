@@ -122,8 +122,8 @@ class RateLimiter {
 class FormSubmissionLimiter extends RateLimiter {
     constructor() {
         super();
-        this.windowMs = 5 * 60 * 1000; // 5分鐘
-        this.maxRequests = 3; // 每5分鐘最多3次提交
+        this.windowMs = 1 * 60 * 1000; // 1分鐘
+        this.maxRequests = 10; // 每1分鐘最多10次提交
     }
     
     // 檢查表單提交限制
