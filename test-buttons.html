@@ -314,10 +314,14 @@
                     const testCases = [
                         { field: 'name', value: '張三', expected: true },
                         { field: 'name', value: '', expected: false },
+                        { field: 'grade', value: '四年級', expected: true },
+                        { field: 'grade', value: '一年級', expected: false },
                         { field: 'class', value: '忠', expected: true },
+                        { field: 'class', value: '信', expected: true },
                         { field: 'class', value: '無效', expected: false },
                         { field: 'seatNumber', value: '15', expected: true },
-                        { field: 'seatNumber', value: '50', expected: false }
+                        { field: 'seatNumber', value: '50', expected: false },
+                        { field: 'notes', value: '', expected: true }
                     ];
 
                     let passedTests = 0;
@@ -450,7 +454,7 @@
                 }
 
                 if (window.formLimiter) {
-                    const testFormData = { name: '測試', class: '忠', seatNumber: '15' };
+                    const testFormData = { grade: '四年級', class: '忠', seatNumber: '15' };
                     const result = window.formLimiter.checkFormSubmission(testFormData);
                     if (result.allowed) {
                         addTestResult('securityTestResult', `✅ 表單速率限制正常 (剩餘: ${result.remaining})`, 'success');

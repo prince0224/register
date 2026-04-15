@@ -135,7 +135,7 @@ class FormSubmissionLimiter extends RateLimiter {
     // 生成表單識別符
     generateFormIdentifier(formData) {
         // 基於表單內容生成唯一識別符
-        const key = `${formData.name}_${formData.class}_${formData.seatNumber}`;
+        const key = `${formData.grade || ''}_${formData.class}_${formData.seatNumber}`;
         return 'form_' + this.hashString(key);
     }
     

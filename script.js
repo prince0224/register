@@ -38,7 +38,6 @@ class FormValidator {
     
     getFieldLabel(fieldName) {
         const labels = {
-            name: '姓名',
             class: '班級',
             seatNumber: '座號',
             event: '報名活動',
@@ -797,12 +796,13 @@ class RegistrationApp {
         // 轉換資料格式以符合 Supabase 資料庫結構
         const registrationData = {
             event_id: data.event,
-            name: data.name,
+            // 資料庫 name 為必填；表單已取消姓名欄，以年級班級座號作為識別
+            name: `${data.grade}${data.class}班${data.seatNumber}號`,
             grade: data.grade,
             class: data.class,
             seat_number: data.seatNumber,
             registration_date: data.date,
-            notes: data.notes || null,
+            notes: (data.notes && String(data.notes).trim()) ? String(data.notes).trim() : null,
             status: 'pending'
         };
         

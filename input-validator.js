@@ -6,13 +6,13 @@ class SecureInputValidator {
             name: /^[\u4e00-\u9fa5a-zA-Z\s]{2,20}$/,
             
             // 班級模式（只允許中文）
-            class: /^[忠孝仁愛]$/,
+            class: /^[忠孝仁愛信]$/,
             
             // 座號模式（1-30）
             seatNumber: /^([1-9]|[12][0-9]|30)$/,
             
             // 年級模式
-            grade: /^一年級$/,
+            grade: /^四年級$/,
             
             // 日期模式
             date: /^\d{4}-\d{2}-\d{2}$/,
@@ -42,6 +42,18 @@ class SecureInputValidator {
     
     // 主要驗證方法
     validate(fieldName, value) {
+        // 備註可留空，不列為必填
+        if (fieldName === 'notes') {
+            const str = value == null ? '' : String(value);
+            if (str.length > 0) {
+                const dangerousCheck = this.checkDangerousPatterns(str);
+                if (!dangerousCheck.isValid) {
+                    return dangerousCheck;
+                }
+            }
+            return this.validateNotes(str);
+        }
+        
         if (!value || typeof value !== 'string') {
             return { isValid: false, error: '輸入不能為空' };
         }

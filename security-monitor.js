@@ -223,7 +223,7 @@ class FormSecurityMonitor {
     
     // 生成識別符
     generateIdentifier(formData) {
-        return `${formData.name}_${formData.class}_${formData.seatNumber}`;
+        return `${formData.grade || ''}_${formData.class}_${formData.seatNumber}`;
     }
 }
 
