@@ -1,0 +1,48 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Verify Netlify secrets
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          missing=0
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "::error::缺少 NETLIFY_AUTH_TOKEN。請到 GitHub：此儲存庫 → Settings → Secrets and variables → Actions → New repository secret。值請到 Netlify：User settings → Applications → Personal access tokens 建立。"
+            missing=1
+          fi
+          if [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "::error::缺少 NETLIFY_SITE_ID。請到 Netlify：該網站 → Site configuration → General → Site details 複製 Site ID，並在 GitHub 同上處新增同名 secret。"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Netlify secrets are present."
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy production
+        run: netlify deploy --prod --dir=. --message "Deploy ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

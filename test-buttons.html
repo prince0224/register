@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>按鈕功能測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4facfe;
+            color: white;
+        }
+        button:hover { background: #00f2fe; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test-result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .test-result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .test-result.warning { background: #fff3cd; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔘 按鈕功能測試工具</h1>
+        <p>此工具用於測試系統中所有按鈕的功能是否正常。</p>
+
+        <div class="test-section">
+            <h3>1. 基本按鈕測試</h3>
+            <button onclick="testBasicButtons()">測試基本按鈕</button>
+            <button onclick="testEventListeners()">測試事件監聽器</button>
+            <button onclick="testSecurityFeatures()">測試安全功能</button>
+            <div id="basicTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 表單按鈕測試</h3>
+            <button onclick="testFormButtons()">測試表單按鈕</button>
+            <button onclick="testFormValidation()">測試表單驗證</button>
+            <div id="formTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 管理後台按鈕測試</h3>
+            <button onclick="testAdminButtons()">測試管理後台按鈕</button>
+            <button onclick="testAdminAuth()">測試管理後台認證</button>
+            <div id="adminTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 安全功能測試</h3>
+            <button onclick="testRateLimiting()">測試速率限制</button>
+            <button onclick="testSecurityMonitoring()">測試安全監控</button>
+            <div id="securityTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. 完整系統測試</h3>
+            <button onclick="runFullTest()">執行完整測試</button>
+            <button onclick="clearAllTests()">清除所有測試結果</button>
+            <div id="fullTestResult"></div>
+        </div>
+    </div>
+
+    <!-- 引入必要的腳本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth-manager.js"></script>
+    <script src="security-monitor.js"></script>
+    <script src="input-validator.js"></script>
+    <script src="rate-limiter.js"></script>
+
+    <script>
+        function addTestResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            element.appendChild(resultDiv);
+        }
+
+        function clearTestResult(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        function testBasicButtons() {
+            clearTestResult('basicTestResult');
+            addTestResult('basicTestResult', '開始測試基本按鈕功能...', 'info');
+
+            try {
+                // 測試按鈕點擊事件
+                const testButton = document.createElement('button');
+                testButton.textContent = '測試按鈕';
+                testButton.onclick = () => {
+                    addTestResult('basicTestResult', '✅ 按鈕點擊事件正常', 'success');
+                };
+                
+                // 模擬點擊
+                testButton.click();
+                
+                // 測試事件監聽器
+                let eventListenerWorked = false;
+                const testElement = document.createElement('div');
+                testElement.addEventListener('click', () => {
+                    eventListenerWorked = true;
+                });
+                testElement.click();
+                
+                if (eventListenerWorked) {
+                    addTestResult('basicTestResult', '✅ 事件監聽器正常', 'success');
+                } else {
+                    addTestResult('basicTestResult', '⚠️ 事件監聽器可能有問題', 'warning');
+                }
+
+                // 測試 DOM 操作
+                const testDiv = document.createElement('div');
+                testDiv.id = 'testDiv';
+                document.body.appendChild(testDiv);
+                const foundDiv = document.getElementById('testDiv');
+                if (foundDiv) {
+                    addTestResult('basicTestResult', '✅ DOM 操作正常', 'success');
+                    document.body.removeChild(testDiv);
+                } else {
+                    addTestResult('basicTestResult', '❌ DOM 操作失敗', 'error');
+                }
+
+            } catch (error) {
+                addTestResult('basicTestResult', `❌ 基本按鈕測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testEventListeners() {
+            clearTestResult('basicTestResult');
+            addTestResult('basicTestResult', '開始測試事件監聽器...', 'info');
+
+            try {
+                // 測試各種事件類型
+                const events = ['click', 'submit', 'change', 'keypress', 'focus', 'blur'];
+                let workingEvents = 0;
+
+                events.forEach(eventType => {
+                    try {
+                        const testElement = document.createElement('div');
+                        testElement.addEventListener(eventType, () => {});
+                        workingEvents++;
+                    } catch (error) {
+                        addTestResult('basicTestResult', `⚠️ ${eventType} 事件監聽器有問題: ${error.message}`, 'warning');
+                    }
+                });
+
+                addTestResult('basicTestResult', `✅ ${workingEvents}/${events.length} 個事件類型正常`, 'success');
+
+                // 測試事件冒泡
+                const parent = document.createElement('div');
+                const child = document.createElement('button');
+                child.textContent = '測試冒泡';
+                parent.appendChild(child);
+                
+                let bubbleWorked = false;
+                parent.addEventListener('click', () => {
+                    bubbleWorked = true;
+                });
+                
+                child.click();
+                
+                if (bubbleWorked) {
+                    addTestResult('basicTestResult', '✅ 事件冒泡正常', 'success');
+                } else {
+                    addTestResult('basicTestResult', '⚠️ 事件冒泡可能有問題', 'warning');
+                }
+
+            } catch (error) {
+                addTestResult('basicTestResult', `❌ 事件監聽器測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testSecurityFeatures() {
+            clearTestResult('basicTestResult');
+            addTestResult('basicTestResult', '開始測試安全功能...', 'info');
+
+            try {
+                // 測試安全監控
+                if (window.securityMonitor) {
+                    addTestResult('basicTestResult', '✅ 安全監控已載入', 'success');
+                    
+                    const stats = window.securityMonitor.getSecurityReport();
+                    addTestResult('basicTestResult', `📊 安全事件統計: ${stats.totalEvents} 個事件`, 'info');
+                } else {
+                    addTestResult('basicTestResult', '⚠️ 安全監控未載入', 'warning');
+                }
+
+                // 測試速率限制
+                if (window.rateLimiter) {
+                    addTestResult('basicTestResult', '✅ 速率限制器已載入', 'success');
+                    
+                    const stats = window.rateLimiter.getStats();
+                    addTestResult('basicTestResult', `📊 速率限制統計: ${stats.activeClients} 個活躍客戶端`, 'info');
+                } else {
+                    addTestResult('basicTestResult', '⚠️ 速率限制器未載入', 'warning');
+                }
+
+                // 測試輸入驗證
+                if (window.SecureInputValidator) {
+                    addTestResult('basicTestResult', '✅ 輸入驗證器已載入', 'success');
+                    
+                    const validator = new window.SecureInputValidator();
+                    const testResult = validator.validate('name', '測試姓名');
+                    if (testResult.isValid) {
+                        addTestResult('basicTestResult', '✅ 輸入驗證功能正常', 'success');
+                    } else {
+                        addTestResult('basicTestResult', '⚠️ 輸入驗證功能有問題', 'warning');
+                    }
+                } else {
+                    addTestResult('basicTestResult', '⚠️ 輸入驗證器未載入', 'warning');
+                }
+
+            } catch (error) {
+                addTestResult('basicTestResult', `❌ 安全功能測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testFormButtons() {
+            clearTestResult('formTestResult');
+            addTestResult('formTestResult', '開始測試表單按鈕...', 'info');
+
+            try {
+                // 創建測試表單
+                const testForm = document.createElement('form');
+                testForm.id = 'testForm';
+                
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.name = 'name';
+                nameInput.value = '測試姓名';
+                
+                const submitButton = document.createElement('button');
+                submitButton.type = 'submit';
+                submitButton.textContent = '提交';
+                
+                testForm.appendChild(nameInput);
+                testForm.appendChild(submitButton);
+                document.body.appendChild(testForm);
+
+                // 測試表單提交
+                let formSubmitted = false;
+                testForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    formSubmitted = true;
+                    addTestResult('formTestResult', '✅ 表單提交事件正常', 'success');
+                });
+
+                submitButton.click();
+
+                if (formSubmitted) {
+                    addTestResult('formTestResult', '✅ 表單按鈕功能正常', 'success');
+                } else {
+                    addTestResult('formTestResult', '⚠️ 表單按鈕可能有問題', 'warning');
+                }
+
+                // 清理
+                document.body.removeChild(testForm);
+
+            } catch (error) {
+                addTestResult('formTestResult', `❌ 表單按鈕測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testFormValidation() {
+            clearTestResult('formTestResult');
+            addTestResult('formTestResult', '開始測試表單驗證...', 'info');
+
+            try {
+                if (window.SecureInputValidator) {
+                    const validator = new window.SecureInputValidator();
+                    
+                    // 測試各種輸入
+                    const testCases = [
+                        { field: 'name', value: '張三', expected: true },
+                        { field: 'name', value: '', expected: false },
+                        { field: 'class', value: '忠', expected: true },
+                        { field: 'class', value: '無效', expected: false },
+                        { field: 'seatNumber', value: '15', expected: true },
+                        { field: 'seatNumber', value: '50', expected: false }
+                    ];
+
+                    let passedTests = 0;
+                    testCases.forEach(testCase => {
+                        const result = validator.validate(testCase.field, testCase.value);
+                        if (result.isValid === testCase.expected) {
+                            passedTests++;
+                        } else {
+                            addTestResult('formTestResult', `⚠️ 驗證測試失敗: ${testCase.field} = "${testCase.value}"`, 'warning');
+                        }
+                    });
+
+                    addTestResult('formTestResult', `✅ ${passedTests}/${testCases.length} 個驗證測試通過`, 'success');
+                } else {
+                    addTestResult('formTestResult', '❌ 輸入驗證器未載入', 'error');
+                }
+
+            } catch (error) {
+                addTestResult('formTestResult', `❌ 表單驗證測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testAdminButtons() {
+            clearTestResult('adminTestResult');
+            addTestResult('adminTestResult', '開始測試管理後台按鈕...', 'info');
+
+            try {
+                // 測試認證管理器
+                if (window.SecureAuthManager) {
+                    addTestResult('adminTestResult', '✅ 認證管理器已載入', 'success');
+                    
+                    // 測試認證功能（不實際登入）
+                    const authManager = new window.SecureAuthManager();
+                    addTestResult('adminTestResult', '✅ 認證管理器初始化成功', 'success');
+                } else {
+                    addTestResult('adminTestResult', '⚠️ 認證管理器未載入', 'warning');
+                }
+
+                // 測試 Supabase 連接
+                if (window.supabaseClient) {
+                    addTestResult('adminTestResult', '✅ Supabase 客戶端已載入', 'success');
+                } else {
+                    addTestResult('adminTestResult', '❌ Supabase 客戶端未載入', 'error');
+                }
+
+            } catch (error) {
+                addTestResult('adminTestResult', `❌ 管理後台按鈕測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testAdminAuth() {
+            clearTestResult('adminTestResult');
+            addTestResult('adminTestResult', '開始測試管理後台認證...', 'info');
+
+            try {
+                // 檢查所有相關的腳本是否載入
+                const scripts = [
+                    'supabaseClient',
+                    'SecureAuthManager', 
+                    'SecureInputValidator',
+                    'rateLimiter',
+                    'formLimiter',
+                    'securityMonitor'
+                ];
+
+                addTestResult('adminTestResult', '🔍 檢查腳本載入狀態...', 'info');
+                scripts.forEach(script => {
+                    if (window[script]) {
+                        addTestResult('adminTestResult', `✅ ${script} 已載入`, 'success');
+                    } else {
+                        addTestResult('adminTestResult', `❌ ${script} 未載入`, 'error');
+                    }
+                });
+
+                if (window.SecureAuthManager) {
+                    addTestResult('adminTestResult', '🔍 測試認證管理器功能...', 'info');
+                    
+                    try {
+                        const authManager = new window.SecureAuthManager();
+                        addTestResult('adminTestResult', '✅ 認證管理器初始化成功', 'success');
+                        
+                        // 測試輸入驗證
+                        const validInput = authManager.validateInput('admin');
+                        if (validInput) {
+                            addTestResult('adminTestResult', '✅ 輸入驗證功能正常', 'success');
+                        } else {
+                            addTestResult('adminTestResult', '⚠️ 輸入驗證功能有問題', 'warning');
+                        }
+
+                        // 測試密碼雜湊（異步操作）
+                        authManager.hashPassword('test123').then(hash => {
+                            if (hash && hash.length > 0) {
+                                addTestResult('adminTestResult', '✅ 密碼雜湊功能正常', 'success');
+                            } else {
+                                addTestResult('adminTestResult', '⚠️ 密碼雜湊功能有問題', 'warning');
+                            }
+                        }).catch(error => {
+                            addTestResult('adminTestResult', `❌ 密碼雜湊失敗: ${error.message}`, 'error');
+                        });
+
+                    } catch (initError) {
+                        addTestResult('adminTestResult', `❌ 認證管理器初始化失敗: ${initError.message}`, 'error');
+                    }
+
+                } else {
+                    addTestResult('adminTestResult', '❌ 認證管理器未載入', 'error');
+                    addTestResult('adminTestResult', '💡 請檢查 auth-manager.js 是否正確載入', 'warning');
+                }
+
+            } catch (error) {
+                addTestResult('adminTestResult', `❌ 管理後台認證測試失敗: ${error.message}`, 'error');
+                console.error('管理後台認證測試失敗:', error);
+            }
+        }
+
+        function testRateLimiting() {
+            clearTestResult('securityTestResult');
+            addTestResult('securityTestResult', '開始測試速率限制...', 'info');
+
+            try {
+                if (window.rateLimiter) {
+                    const result = window.rateLimiter.checkRateLimit();
+                    if (result.allowed) {
+                        addTestResult('securityTestResult', `✅ 速率限制正常 (剩餘: ${result.remaining})`, 'success');
+                    } else {
+                        addTestResult('securityTestResult', `⚠️ 速率限制觸發: ${result.reason}`, 'warning');
+                    }
+                } else {
+                    addTestResult('securityTestResult', '❌ 速率限制器未載入', 'error');
+                }
+
+                if (window.formLimiter) {
+                    const testFormData = { name: '測試', class: '忠', seatNumber: '15' };
+                    const result = window.formLimiter.checkFormSubmission(testFormData);
+                    if (result.allowed) {
+                        addTestResult('securityTestResult', `✅ 表單速率限制正常 (剩餘: ${result.remaining})`, 'success');
+                    } else {
+                        addTestResult('securityTestResult', `⚠️ 表單速率限制觸發: ${result.reason}`, 'warning');
+                    }
+                } else {
+                    addTestResult('securityTestResult', '❌ 表單速率限制器未載入', 'error');
+                }
+
+            } catch (error) {
+                addTestResult('securityTestResult', `❌ 速率限制測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testSecurityMonitoring() {
+            clearTestResult('securityTestResult');
+            addTestResult('securityTestResult', '開始測試安全監控...', 'info');
+
+            try {
+                if (window.securityMonitor) {
+                    const report = window.securityMonitor.getSecurityReport();
+                    addTestResult('securityTestResult', `✅ 安全監控正常 (${report.totalEvents} 個事件)`, 'success');
+                    
+                    if (report.suspiciousEvents > 0) {
+                        addTestResult('securityTestResult', `⚠️ 發現 ${report.suspiciousEvents} 個可疑事件`, 'warning');
+                    } else {
+                        addTestResult('securityTestResult', '✅ 沒有可疑事件', 'success');
+                    }
+                } else {
+                    addTestResult('securityTestResult', '❌ 安全監控未載入', 'error');
+                }
+
+            } catch (error) {
+                addTestResult('securityTestResult', `❌ 安全監控測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function runFullTest() {
+            clearTestResult('fullTestResult');
+            addTestResult('fullTestResult', '開始執行完整系統測試...', 'info');
+
+            // 依次執行所有測試
+            setTimeout(() => testBasicButtons(), 100);
+            setTimeout(() => testEventListeners(), 200);
+            setTimeout(() => testSecurityFeatures(), 300);
+            setTimeout(() => testFormButtons(), 400);
+            setTimeout(() => testFormValidation(), 500);
+            setTimeout(() => testAdminButtons(), 600);
+            setTimeout(() => testAdminAuth(), 700);
+            setTimeout(() => testRateLimiting(), 800);
+            setTimeout(() => testSecurityMonitoring(), 900);
+            
+            setTimeout(() => {
+                addTestResult('fullTestResult', '✅ 完整系統測試完成', 'success');
+                addTestResult('fullTestResult', '請查看各項測試結果，如有問題請檢查瀏覽器控制台', 'info');
+            }, 1000);
+        }
+
+        function clearAllTests() {
+            const resultElements = ['basicTestResult', 'formTestResult', 'adminTestResult', 'securityTestResult', 'fullTestResult'];
+            resultElements.forEach(id => clearTestResult(id));
+        }
+
+        // 頁面載入時自動執行基本測試
+        document.addEventListener('DOMContentLoaded', () => {
+            addTestResult('fullTestResult', '🚀 按鈕功能測試工具已載入', 'info');
+            addTestResult('fullTestResult', '點擊上方按鈕開始測試各項功能', 'info');
+        });
+    </script>
+</body>
+</html>

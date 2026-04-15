@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刪除測試活動</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ 刪除測試活動</h1>
+        
+        <div id="status"></div>
+        
+        <button class="btn btn-danger" onclick="deleteTestEvents()">
+            刪除所有測試活動
+        </button>
+        
+        <button class="btn btn-success" onclick="checkEvents()">
+            檢查剩餘活動
+        </button>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    
+    <script>
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${isError ? 'status-error' : 'status-success'}">${message}</div>`;
+        }
+        
+        async function deleteTestEvents() {
+            try {
+                showStatus('正在刪除測試活動...');
+                
+                // 刪除所有名為「測試一」或「測試二」的活動
+                const { error } = await window.supabaseClient
+                    .from('events')
+                    .delete()
+                    .in('name', ['測試一', '測試二']);
+                
+                if (error) throw error;
+                
+                showStatus('✅ 測試活動已成功刪除！');
+                
+                // 自動檢查剩餘活動
+                setTimeout(checkEvents, 1000);
+                
+            } catch (error) {
+                console.error('刪除失敗:', error);
+                showStatus(`❌ 刪除失敗: ${error.message}`, true);
+            }
+        }
+        
+        async function checkEvents() {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('id, name, active')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    showStatus('✅ 資料庫中沒有任何活動');
+                } else {
+                    const eventList = data.map(event => 
+                        `• ${event.name} (ID: ${event.id}, 狀態: ${event.active ? '啟用' : '停用'})`
+                    ).join('<br>');
+                    showStatus(`📋 剩餘活動 (${data.length}個):<br>${eventList}`);
+                }
+                
+            } catch (error) {
+                console.error('檢查失敗:', error);
+                showStatus(`❌ 檢查失敗: ${error.message}`, true);
+            }
+        }
+        
+        // 頁面載入時自動檢查
+        document.addEventListener('DOMContentLoaded', () => {
+            checkEvents();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資料庫狀態檢查</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+        .status-card.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .status-card.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .status-card.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .status-card.info {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4facfe;
+            color: white;
+        }
+        button:hover { background: #00f2fe; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .action-buttons {
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ 資料庫狀態檢查</h1>
+        <p>此工具用於檢查 Supabase 資料庫的狀態和結構。</p>
+
+        <div class="action-buttons">
+            <button onclick="checkDatabaseStatus()">檢查資料庫狀態</button>
+            <button onclick="createSampleData()">創建範例資料</button>
+            <button onclick="clearAllData()">清除所有資料</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, content, type = 'info') {
+            const card = document.createElement('div');
+            card.className = `status-card ${type}`;
+            card.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+            `;
+            resultsDiv.appendChild(card);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        async function checkDatabaseStatus() {
+            clearResults();
+            addResult('🔍 開始檢查資料庫狀態...', '正在連接到 Supabase...', 'info');
+
+            try {
+                // 1. 檢查 Supabase 連接
+                addResult('1. Supabase 連接測試', '正在測試連接...', 'info');
+                
+                if (!window.supabaseClient) {
+                    addResult('❌ Supabase 客戶端未初始化', '請檢查 supabase-config.js 檔案', 'error');
+                    return;
+                }
+
+                // 2. 檢查 events 表
+                addResult('2. Events 表檢查', '正在檢查 events 表...', 'info');
+                await checkEventsTable();
+
+                // 3. 檢查 registrations 表
+                addResult('3. Registrations 表檢查', '正在檢查 registrations 表...', 'info');
+                await checkRegistrationsTable();
+
+                // 4. 檢查資料完整性
+                addResult('4. 資料完整性檢查', '正在檢查資料完整性...', 'info');
+                await checkDataIntegrity();
+
+                addResult('✅ 檢查完成', '所有檢查已完成，請查看上述結果', 'success');
+
+            } catch (error) {
+                addResult('❌ 檢查失敗', `發生錯誤: ${error.message}`, 'error');
+                console.error('資料庫檢查失敗:', error);
+            }
+        }
+
+        async function checkEventsTable() {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('*')
+                    .limit(5);
+
+                if (error) {
+                    if (error.message.includes('relation "events" does not exist')) {
+                        addResult('❌ Events 表不存在', `
+                            <p>Events 表尚未創建，需要執行資料庫初始化。</p>
+                            <p><strong>解決方案：</strong></p>
+                            <ul>
+                                <li>在 Supabase 控制台執行 SQL 腳本</li>
+                                <li>或使用下方「創建範例資料」按鈕</li>
+                            </ul>
+                        `, 'error');
+                    } else {
+                        addResult('⚠️ Events 表查詢失敗', `錯誤: ${error.message}`, 'warning');
+                    }
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    const sampleEvent = data[0];
+                    const columns = Object.keys(sampleEvent);
+                    const activeEvents = data.filter(e => e.active).length;
+                    
+                    addResult('✅ Events 表正常', `
+                        <p><strong>表狀態：</strong>正常</p>
+                        <p><strong>總記錄數：</strong>${data.length} 筆</p>
+                        <p><strong>啟用活動：</strong>${activeEvents} 個</p>
+                        <p><strong>欄位：</strong>${columns.join(', ')}</p>
+                        <p><strong>範例資料：</strong></p>
+                        <pre>${JSON.stringify(sampleEvent, null, 2)}</pre>
+                    `, 'success');
+                } else {
+                    addResult('⚠️ Events 表為空', `
+                        <p>Events 表存在但沒有資料。</p>
+                        <p>建議使用「創建範例資料」按鈕添加測試活動。</p>
+                    `, 'warning');
+                }
+
+            } catch (error) {
+                addResult('❌ Events 表檢查失敗', `錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkRegistrationsTable() {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('registrations')
+                    .select('*')
+                    .limit(5);
+
+                if (error) {
+                    if (error.message.includes('relation "registrations" does not exist')) {
+                        addResult('❌ Registrations 表不存在', `
+                            <p>Registrations 表尚未創建，需要執行資料庫初始化。</p>
+                            <p><strong>解決方案：</strong></p>
+                            <ul>
+                                <li>在 Supabase 控制台執行 SQL 腳本</li>
+                                <li>或使用下方「創建範例資料」按鈕</li>
+                            </ul>
+                        `, 'error');
+                    } else {
+                        addResult('⚠️ Registrations 表查詢失敗', `錯誤: ${error.message}`, 'warning');
+                    }
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    const sampleReg = data[0];
+                    const columns = Object.keys(sampleReg);
+                    
+                    addResult('✅ Registrations 表正常', `
+                        <p><strong>表狀態：</strong>正常</p>
+                        <p><strong>總記錄數：</strong>${data.length} 筆</p>
+                        <p><strong>欄位：</strong>${columns.join(', ')}</p>
+                        <p><strong>範例資料：</strong></p>
+                        <pre>${JSON.stringify(sampleReg, null, 2)}</pre>
+                    `, 'success');
+                } else {
+                    addResult('ℹ️ Registrations 表為空', `
+                        <p>Registrations 表存在但沒有資料。</p>
+                        <p>這是正常的，當有用戶報名時才會有資料。</p>
+                    `, 'info');
+                }
+
+            } catch (error) {
+                addResult('❌ Registrations 表檢查失敗', `錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkDataIntegrity() {
+            try {
+                // 檢查是否有活動資料
+                const { data: eventsData, error: eventsError } = await window.supabaseClient
+                    .from('events')
+                    .select('id, name, active')
+                    .eq('active', true);
+
+                if (eventsError) {
+                    addResult('⚠️ 資料完整性檢查失敗', `無法檢查活動資料: ${eventsError.message}`, 'warning');
+                    return;
+                }
+
+                if (!eventsData || eventsData.length === 0) {
+                    addResult('⚠️ 沒有啟用的活動', `
+                        <p>目前沒有啟用的活動可供報名。</p>
+                        <p><strong>解決方案：</strong></p>
+                        <ul>
+                            <li>使用「創建範例資料」按鈕創建測試活動</li>
+                            <li>或在管理後台手動添加活動</li>
+                        </ul>
+                    `, 'warning');
+                } else {
+                    addResult('✅ 資料完整性正常', `
+                        <p><strong>啟用活動數量：</strong>${eventsData.length} 個</p>
+                        <p><strong>活動列表：</strong></p>
+                        <ul>
+                            ${eventsData.map(event => `<li>${event.name} (ID: ${event.id})</li>`).join('')}
+                        </ul>
+                    `, 'success');
+                }
+
+            } catch (error) {
+                addResult('❌ 資料完整性檢查失敗', `錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function createSampleData() {
+            if (!confirm('確定要創建範例資料嗎？這將在資料庫中添加測試活動。')) {
+                return;
+            }
+
+            clearResults();
+            addResult('🔄 正在創建範例資料...', '請稍候...', 'info');
+
+            try {
+                // 首先檢查表是否存在
+                const { data: eventsData, error: eventsError } = await window.supabaseClient
+                    .from('events')
+                    .select('id')
+                    .limit(1);
+
+                if (eventsError && eventsError.message.includes('relation "events" does not exist')) {
+                    addResult('❌ 無法創建範例資料', `
+                        <p>Events 表不存在，需要先創建資料庫結構。</p>
+                        <p><strong>解決方案：</strong></p>
+                        <ol>
+                            <li>在 Supabase 控制台執行以下 SQL 腳本：</li>
+                        </ol>
+                        <pre>
+-- 創建 events 表
+CREATE TABLE events (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(100),
+    date DATE NOT NULL,
+    time TIME,
+    location VARCHAR(255),
+    capacity INTEGER DEFAULT 30,
+    fee DECIMAL(10,2) DEFAULT 0,
+    description TEXT,
+    active BOOLEAN DEFAULT true,
+    poster_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 創建 registrations 表
+CREATE TABLE registrations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    grade VARCHAR(50) NOT NULL,
+    class VARCHAR(50) NOT NULL,
+    seat_number INTEGER NOT NULL,
+    registration_date DATE NOT NULL,
+    notes TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 啟用 RLS
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
+
+-- 創建政策
+CREATE POLICY "任何人都可以讀取活動" ON events FOR SELECT USING (true);
+CREATE POLICY "任何人都可以新增報名" ON registrations FOR INSERT WITH CHECK (true);
+CREATE POLICY "任何人都可以讀取報名資料" ON registrations FOR SELECT USING (true);
+                        </pre>
+                    `, 'error');
+                    return;
+                }
+
+                // 創建範例活動
+                const sampleEvents = [
+                    {
+                        name: '春季戶外教學',
+                        type: '戶外活動',
+                        date: '2024-03-15',
+                        time: '09:00',
+                        location: '陽明山國家公園',
+                        capacity: 30,
+                        fee: 0,
+                        description: '帶領學生親近大自然，學習生態知識',
+                        active: true
+                    },
+                    {
+                        name: '科學實驗課程',
+                        type: '室內活動',
+                        date: '2024-03-20',
+                        time: '14:00',
+                        location: '學校實驗室',
+                        capacity: 25,
+                        fee: 100,
+                        description: '有趣的科學實驗，培養學生對科學的興趣',
+                        active: true
+                    },
+                    {
+                        name: '美術創作工作坊',
+                        type: '藝術活動',
+                        date: '2024-03-25',
+                        time: '10:00',
+                        location: '美術教室',
+                        capacity: 20,
+                        fee: 50,
+                        description: '學習繪畫技巧，發揮創意想像',
+                        active: true
+                    }
+                ];
+
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .insert(sampleEvents)
+                    .select();
+
+                if (error) throw error;
+
+                addResult('✅ 範例資料創建成功', `
+                    <p>成功創建 ${data.length} 個測試活動：</p>
+                    <ul>
+                        ${data.map(event => `<li><strong>${event.name}</strong> - ${event.date} ${event.time}</li>`).join('')}
+                    </ul>
+                    <p>現在可以返回主頁面查看活動列表了！</p>
+                `, 'success');
+
+            } catch (error) {
+                addResult('❌ 創建範例資料失敗', `錯誤: ${error.message}`, 'error');
+                console.error('創建範例資料失敗:', error);
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('⚠️ 確定要清除所有資料嗎？此操作無法復原！')) {
+                return;
+            }
+
+            clearResults();
+            addResult('🗑️ 正在清除所有資料...', '請稍候...', 'warning');
+
+            try {
+                // 清除 registrations 表
+                const { error: regError } = await window.supabaseClient
+                    .from('registrations')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000');
+
+                if (regError) {
+                    addResult('⚠️ 清除報名資料失敗', `錯誤: ${regError.message}`, 'warning');
+                } else {
+                    addResult('✅ 報名資料已清除', '所有報名記錄已刪除', 'success');
+                }
+
+                // 清除 events 表
+                const { error: eventsError } = await window.supabaseClient
+                    .from('events')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000');
+
+                if (eventsError) {
+                    addResult('⚠️ 清除活動資料失敗', `錯誤: ${eventsError.message}`, 'warning');
+                } else {
+                    addResult('✅ 活動資料已清除', '所有活動記錄已刪除', 'success');
+                }
+
+                addResult('✅ 清除完成', '所有資料已清除，資料庫現在是空的', 'success');
+
+            } catch (error) {
+                addResult('❌ 清除資料失敗', `錯誤: ${error.message}`, 'error');
+                console.error('清除資料失敗:', error);
+            }
+        }
+
+        // 頁面載入時自動檢查
+        document.addEventListener('DOMContentLoaded', () => {
+            checkDatabaseStatus();
+        });
+    </script>
+</body>
+</html>
